@@ -1,3 +1,7 @@
+/!\ ce qui ne va pas :
+la base d'authentification est du SQL Server
+
+
 
 * implémentations des websockets pour le serveur
 1/ dans startup.cs
