@@ -9,6 +9,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BattleIA.Common", "BattleIA
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{7E243CC2-FD79-4C66-8603-8A81EA24FFBB}"
 	ProjectSection(SolutionItems) = preProject
+		Battle IA.pptx = Battle IA.pptx
 		notes.txt = notes.txt
 	EndProjectSection
 EndProject
