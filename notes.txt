@@ -1,0 +1,46 @@
+
+* implémentations des websockets pour le serveur
+1/ dans startup.cs
+déclaration des websockets pour asp.net
+chaque nouvel connection envoi vers MainGame.AddClient()
+on y maintient une List des clients connectés
+/!\ on fonctionne en thread : donc on lock pour travailler sur la liste ;)
+
+* protocole
+1/ le premier envoi contient le GUID du BOT
+le serveur renvoi OK si le GUID est présent et connu en base
+le bot attend alors son tour
+
+2/ réception de T##eesscc
+## : numéro de tour dans le jeu
+ee : niveau d'energie
+ss : niveau du shield / bouclier
+cc : niveau de cloack / invisibilité
+
+C'est le démarrage d'un tour de jeu
+Le serveur nous envoi le niveau de nos différents éléments
+
+pour obtenir la valeur en 16 bit non signé, on fera le calcul suivant
+(second octet << 8) + (premier octet)
+
+La réponse a apportée est le niveau de détection que nous voulons effectuer
+Nous envoyons le message D#
+avec # pour valeur de 0 à 255
+0 : aucune détection
+1 : détection sur une zone de 1 autour de nous, consomme 1 énergie
+2 : détection sur une zone de 2 autour de nous, consomme 2 énergie
+etc. ... jusqu'à 255
+
+3/ réception de I#.......................................
+Il s'agit de la réponse à notre détection
+# est la valeur de zone de détection
+...... est un tableau à 2 dimensions de taille # x #
+signification de chacune des valeurs
+0 : case vide
+1 : nous
+2 : mur infranchissable
+3 : énergie à récupérer (valeur inconnue)
+4 : ennemi
+
+
+{50A38383-9A61-42FA-92F2-97CE3ADC426D}
