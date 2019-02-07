@@ -115,7 +115,7 @@ namespace BattleIA
             app.Use(async (context, next) =>
             {
                 // ouverture d'une websocket, un nouveau client se connecte
-                if (context.Request.Path == "/ws")
+                if (context.Request.Path == "/ia")
                 {
                     if (context.WebSockets.IsWebSocketRequest)
                     {

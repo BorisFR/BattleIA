@@ -18,7 +18,7 @@ namespace SampleBot
         static async Task DoWork()
         {
             var client = new ClientWebSocket();
-            await client.ConnectAsync(new Uri("wss://localhost:44367/ws"), CancellationToken.None);
+            await client.ConnectAsync(new Uri("wss://localhost:44367/ia"), CancellationToken.None);
             Guid guid = Guid.NewGuid();
             var bytes = Encoding.UTF8.GetBytes(guid.ToString());
             await client.SendAsync(new ArraySegment<byte>(bytes), WebSocketMessageType.Text, true, CancellationToken.None);
