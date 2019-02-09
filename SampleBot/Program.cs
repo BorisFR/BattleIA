@@ -8,17 +8,29 @@ namespace SampleBot
 {
     class Program
     {
+        private static string serverUrl = "wss://localhost:44367/ia";
         static void Main(string[] args)
         {
-            Console.WriteLine("Hello World!");
+            Console.WriteLine("SampleBot");
             DoWork().GetAwaiter().GetResult();
             Console.WriteLine("Bye");
+            Console.WriteLine("Press [ENTER] to exit.");
+            Console.ReadLine();
         }
 
         static async Task DoWork()
         {
             var client = new ClientWebSocket();
-            await client.ConnectAsync(new Uri("wss://localhost:44367/ia"), CancellationToken.None);
+            Console.WriteLine($"Connecting to {serverUrl}");
+            try
+            {
+                await client.ConnectAsync(new Uri(serverUrl), CancellationToken.None);
+            }
+            catch (Exception err)
+            {
+                Console.WriteLine($"[ERROR] {err.Message}");
+                return;
+            }
             Guid guid = Guid.NewGuid();
             var bytes = Encoding.UTF8.GetBytes(guid.ToString());
             await client.SendAsync(new ArraySegment<byte>(bytes), WebSocketMessageType.Text, true, CancellationToken.None);

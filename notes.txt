@@ -2,6 +2,7 @@
 la base d'authentification est du SQL Server
 
 
+.NET Core 2.2 SDK
 
 * implémentations des websockets pour le serveur
 1/ dans startup.cs

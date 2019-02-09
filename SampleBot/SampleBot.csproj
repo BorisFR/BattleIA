@@ -6,6 +6,9 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <None Remove="launch.sh" />
+  </ItemGroup>
+  <ItemGroup>
     <None Update="launch.bat">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
