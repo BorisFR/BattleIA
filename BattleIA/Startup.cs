@@ -84,7 +84,7 @@ namespace BattleIA
             }
 
 
-            app.UseHttpsRedirection();
+            //app.UseHttpsRedirection();
             app.UseStaticFiles();
             app.UseCookiePolicy();
 
@@ -106,7 +106,7 @@ namespace BattleIA
                 KeepAliveInterval = TimeSpan.FromSeconds(30),
                 ReceiveBufferSize = 4 * 1024
             };
-            webSocketOptions.AllowedOrigins.Add("https://ly0500");
+            //webSocketOptions.AllowedOrigins.Add("http://ly0500");
             //webSocketOptions.AllowedOrigins.Add("wss://ly0500");
             //webSocketOptions.AllowedOrigins.Add("file://");
 

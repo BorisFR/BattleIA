@@ -1,10 +1,10 @@
-﻿{
+{
   "iisSettings": {
-    "windowsAuthentication": false, 
-    "anonymousAuthentication": true, 
+    "windowsAuthentication": false,
+    "anonymousAuthentication": true,
     "iisExpress": {
-      "applicationUrl": "http://ly0500:51973",
-      "sslPort": 44367
+      "applicationUrl": "http://10.26.1.182:51973",
+      "sslPort": 0
     }
   },
   "profiles": {
@@ -18,10 +18,10 @@
     "BattleIA": {
       "commandName": "Project",
       "launchBrowser": true,
-      "applicationUrl": "https://ly0500:5001;http://ly0500:5000",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development"
-      }
+      },
+      "applicationUrl": "https://ly0500:5001;http://ly0500:5000"
     }
   }
 }

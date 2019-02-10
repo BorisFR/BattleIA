@@ -352,35 +352,29 @@ namespace BattleIA
         public async Task DoScan(byte size)
         {
             if (IsEnd) return;
-            var buffer = new byte[2 + size * size];
+            int distance = 2 * size + 1;
+            var buffer = new byte[2 + distance * distance];
             buffer[0] = System.Text.Encoding.ASCII.GetBytes("I")[0];
-            buffer[1] = size;
+            buffer[1] = (byte)(distance);
             UInt16 posByte = 2;
-            int posX = bot.X - size;
-            for (UInt16 i = 0; i < size; i++)
+            int posY = bot.Y - size;
+            for (UInt16 i = 0; i < (2*size+1); i++)
             {
-                if (posX < 0 || posX >= MainGame.MapWidth)
+                int posX = bot.X - size;
+                for (UInt16 j = 0; j < (2*size+1); j++)
                 {
-                    buffer[posByte++] = (byte)CaseState.Wall;
-                }
-                else
-                {
-                    int posY = bot.Y - size;
-                    for (UInt16 j = 0; j < size; j++)
+                    if (posX < 0 || posX >= MainGame.MapWidth || posY < 0 || posY >= MainGame.MapHeight)
                     {
-                        if (posY < 0 || posY >= MainGame.MapHeight)
-                        {
-                            buffer[posByte++] = (byte)CaseState.Wall;
-                        }
-                        else
-                        {
-                            buffer[posByte++] = (byte)MainGame.TheMap[posX, posY];
-                        }
+                        buffer[posByte++] = (byte)CaseState.Wall;
                     }
+                    else
+                    {
+                        buffer[posByte++] = (byte)MainGame.TheMap[posX, posY];
+                    }
+                    posX++;
                 }
-                posX++;
+                posY++;
             }
-
             try
             {
                 State = BotState.WaitingAction;
