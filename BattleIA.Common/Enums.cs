@@ -26,7 +26,7 @@ namespace BattleIA
         Ennemy = 4,
     }
 
-    public enum Action : byte
+    public enum BotAction : byte
     {
         None = 0,
         Move = 1,
@@ -51,7 +51,7 @@ namespace BattleIA
         South = 5,
         SouthEast = 6,
         East = 7,
-        NorthEast=8,
+        NorthEast = 8,
     }
 
 }

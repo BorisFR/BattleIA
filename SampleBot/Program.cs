@@ -95,9 +95,11 @@ namespace SampleBot
                                 byte surface = buffer[1];
                                 int all = surface * surface;
                                 if (result.Count != (2 + all)) { Console.WriteLine($"[ERROR] wrong size for 'I': {result.Count}"); break; } // I#+data so 2 + surface :)
+                                var x = new ArraySegment<byte>(buffer, 0, all);
+                                ia.AreaInformation(surface, x.Array);
                                 // must answer with action M / S / C / None
-                                var answerA = ia.GetAction(); // (byte)BattleIA.Action.None; // System.Text.Encoding.ASCII.GetBytes("N")[0];
-                                Console.WriteLine($"Sending Action: {(BattleIA.Action)answerA[0]}");
+                                var answerA = ia.GetAction(); // (byte)BotAction.None; // System.Text.Encoding.ASCII.GetBytes("N")[0];
+                                Console.WriteLine($"Sending Action: {(BotAction)answerA[0]}");
                                 await client.SendAsync(new ArraySegment<byte>(answerA), WebSocketMessageType.Text, true, CancellationToken.None);
                                 break;
                         }

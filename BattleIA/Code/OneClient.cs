@@ -134,7 +134,7 @@ namespace BattleIA
                             {
                                 if (distance < bot.Energy)
                                 {
-                                    bot.Energy-=distance;
+                                    bot.Energy -= distance;
                                     await SendChangeInfo();
                                     await DoScan(distance);
                                 }
@@ -147,14 +147,14 @@ namespace BattleIA
                             }
                             break;
                         case BotState.WaitingAction:
-                            Action action = (Action)buffer[0];
+                            BotAction action = (BotAction)buffer[0];
                             switch (action)
                             {
-                                case Action.None: // None
+                                case BotAction.None: // None
                                     State = BotState.Ready;
                                     await SendMessage("OK");
                                     break;
-                                case Action.Move: // move
+                                case BotAction.Move: // move
                                     if (result.Count < 2)
                                     {
                                         IsEnd = true;
@@ -167,7 +167,7 @@ namespace BattleIA
                                     State = BotState.Ready;
                                     await SendMessage("OK");
                                     break;
-                                case Action.ShieldLevel: // shield
+                                case BotAction.ShieldLevel: // shield
                                     if (result.Count < 3)
                                     {
                                         IsEnd = true;
@@ -188,7 +188,7 @@ namespace BattleIA
                                     State = BotState.Ready;
                                     await SendMessage("OK");
                                     break;
-                                case Action.CloackLevel: // cloack
+                                case BotAction.CloackLevel: // cloack
                                     if (result.Count < 3)
                                     {
                                         IsEnd = true;
@@ -209,7 +209,7 @@ namespace BattleIA
                                     State = BotState.Ready;
                                     await SendMessage("OK");
                                     break;
-                                case Action.Fire:
+                                case BotAction.Fire:
                                     // TODO: effectuer le tir :)
                                     bot.Energy--;
                                     if (bot.Energy == 0)
