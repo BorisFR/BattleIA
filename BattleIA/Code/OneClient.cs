@@ -37,7 +37,22 @@ namespace BattleIA
         public async Task WaitReceive()
         {
             var buffer = new byte[1024 * 4];
-            WebSocketReceiveResult result = await webSocket.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None);
+            WebSocketReceiveResult result = null;
+            try
+            {
+                result = await webSocket.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None);
+            }catch(Exception err)
+            {
+                System.Diagnostics.Debug.WriteLine($"[ERROR] {err.Message}");
+                IsEnd = true;
+                State = BotState.Disconnect;
+                try
+                {
+                    await webSocket.CloseAsync(WebSocketCloseStatus.ProtocolError, "Error waiting data", CancellationToken.None);
+                }
+                catch (Exception) { }
+                return;
+            }
             while (!result.CloseStatus.HasValue)
             {
                 if (State == BotState.WaitingGUID)
@@ -146,7 +161,23 @@ namespace BattleIA
                     await webSocket.SendAsync(new ArraySegment<byte>(buffer, 0, buffer.Length), result.MessageType, result.EndOfMessage, CancellationToken.None);
                     */
                 }
-                result = await webSocket.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None);
+                //result = await webSocket.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None);
+                try
+                {
+                    result = await webSocket.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None);
+                }
+                catch (Exception err)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[ERROR] {err.Message}");
+                    IsEnd = true;
+                    State = BotState.Disconnect;
+                    try
+                    {
+                        await webSocket.CloseAsync(WebSocketCloseStatus.ProtocolError, "Error waiting data", CancellationToken.None);
+                    }
+                    catch (Exception) { }
+                    return;
+                }
             }
             await webSocket.CloseAsync(result.CloseStatus.Value, result.CloseStatusDescription, CancellationToken.None);
             IsEnd = true;

@@ -19,4 +19,7 @@
     <ProjectReference Include="..\BattleIA.Common\BattleIA.Common.csproj" />
   </ItemGroup>
 
+
+  <ProjectExtensions><VisualStudio><UserProperties Properties_4launchSettings_1json__JSONSchema="http://json.schemastore.org/lsdlschema" /></VisualStudio></ProjectExtensions>
+
 </Project>

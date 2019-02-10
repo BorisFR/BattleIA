@@ -106,8 +106,8 @@ namespace BattleIA
                 KeepAliveInterval = TimeSpan.FromSeconds(30),
                 ReceiveBufferSize = 4 * 1024
             };
-            //webSocketOptions.AllowedOrigins.Add("https://client.com");
-            //webSocketOptions.AllowedOrigins.Add("https://www.client.com");
+            webSocketOptions.AllowedOrigins.Add("https://ly0500");
+            webSocketOptions.AllowedOrigins.Add("wss://ly0500");
             //webSocketOptions.AllowedOrigins.Add("file://");
 
             app.UseWebSockets(webSocketOptions);

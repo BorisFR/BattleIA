@@ -2,6 +2,7 @@
 la base d'authentification est du SQL Server
 
 
+Unity 2018.3.5f1 personal
 .NET Core 2.2 SDK
 
 * implémentations des websockets pour le serveur
