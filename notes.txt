@@ -6,6 +6,9 @@ Unity 2018.3.5f1 personal
 .NET Core 2.2 SDK
 
 * implémentations des websockets pour le serveur
+
+partie pris : à la moindre anicroche, déconnection pure et simple du client
+
 1/ dans startup.cs
 déclaration des websockets pour asp.net
 chaque nouvel connection envoi vers MainGame.AddClient()
@@ -48,5 +51,17 @@ signification de chacune des valeurs
 3 : énergie à récupérer (valeur inconnue)
 4 : ennemi
 
+La réponse a apportée, est l'action que nous voulons effectuer
+Si aucune action, envoyer N
+Si déplacement, envoyer M# avec #=direction de 1 à 8 (voir enum)
+Si protection, envoyer S#
+Si se cacher, envoyer C#
+Si tire sur ennemi, envoyer F...
+
+4/ réception de Ceesscc
+Un changement vient d'avoir lieu, voici les nouvelles valeurs
+ee : niveau d'energie
+ss : niveau du shield / bouclier
+cc : niveau de cloack / invisibilité
 
 {50A38383-9A61-42FA-92F2-97CE3ADC426D}

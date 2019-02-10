@@ -39,5 +39,19 @@ namespace BattleIA
     {
         OK = 2,
         Turn = 9,
+        Change = 7,
     }
+
+    public enum MoveDirection : byte
+    {
+        North = 1,
+        NorthWest = 2,
+        West = 3,
+        SouthWest = 4,
+        South = 5,
+        SouthEast = 6,
+        East = 7,
+        NorthEast=8,
+    }
+
 }

@@ -36,6 +36,9 @@ namespace BattleIA
         /// <returns></returns>
         public async Task WaitReceive()
         {
+            // 1 - on attend la première data du client
+            // qui doit etre son GUID
+
             var buffer = new byte[1024 * 4];
             WebSocketReceiveResult result = null;
             try
@@ -56,6 +59,9 @@ namespace BattleIA
             }
             while (!result.CloseStatus.HasValue)
             {
+
+                // 2 - réception du GUID
+
                 if (State == BotState.WaitingGUID)
                 {
                     if (result.Count != 38 && result.Count != 36 && result.Count != 32) // pas de GUID ?
@@ -79,9 +85,13 @@ namespace BattleIA
                         UInt16 x, y;
                         MainGame.SearchEmptyCase(out x, out y);
                         MainGame.TheMap[x, y] = CaseState.Ennemy;
+                        bot.X = x;
+                        bot.Y = y;
+                        bot.Energy = 100;
 
                         State = BotState.Ready;
                         await SendMessage("OK");
+                        await StartNewTurn();
                     }
                     else
                     {
@@ -90,10 +100,10 @@ namespace BattleIA
                         await webSocket.CloseAsync(WebSocketCloseStatus.ProtocolError, $"[{text}] is not a GUID", CancellationToken.None);
                         return;
                     }
-                }
+                } // réception GUID
                 else
                 {
-                    if (result.Count < 2)
+                    if (result.Count < 1)
                     {
                         IsEnd = true;
                         State = BotState.Disconnect;
@@ -101,7 +111,6 @@ namespace BattleIA
                         return;
                     }
                     string command = System.Text.Encoding.UTF8.GetString(buffer, 0, 1);
-                    byte value = buffer[1];
                     switch (State)
                     {
                         case BotState.WaitingAnswerD:
@@ -112,44 +121,87 @@ namespace BattleIA
                                 await webSocket.CloseAsync(WebSocketCloseStatus.ProtocolError, $"[ERROR] Not the right answer, waiting D#, receive {command}", CancellationToken.None);
                                 return;
                             }
+                            if (result.Count < 1)
+                            {
+                                IsEnd = true;
+                                State = BotState.Disconnect;
+                                await webSocket.CloseAsync(WebSocketCloseStatus.ProtocolError, "Missing data in answer 'D'", CancellationToken.None);
+                                return;
+                            }
                             // do a scan of size value and send answer
-                            await DoScan(value);
+                            byte distance = buffer[1];
+                            await DoScan(distance);
                             break;
                         case BotState.WaitingAction:
                             switch (command)
                             {
+                                case "N": // None
+                                    State = BotState.Ready;
+                                    await SendMessage("OK");
+                                    break;
                                 case "M": // move
+                                    if (result.Count < 2)
+                                    {
+                                        IsEnd = true;
+                                        State = BotState.Disconnect;
+                                        await webSocket.CloseAsync(WebSocketCloseStatus.ProtocolError, "Missing data in answer 'M'", CancellationToken.None);
+                                        return;
+                                    }
+                                    byte direction = buffer[1];
+                                    await DoMove((MoveDirection)direction);
                                     State = BotState.Ready;
                                     await SendMessage("OK");
                                     break;
                                 case "S": // shield
+                                    if (result.Count < 3)
+                                    {
+                                        IsEnd = true;
+                                        State = BotState.Disconnect;
+                                        await webSocket.CloseAsync(WebSocketCloseStatus.ProtocolError, "Missing data in answer 'S'", CancellationToken.None);
+                                        return;
+                                    }
+                                    UInt16 shieldLevel = (UInt16)(buffer[1] + (buffer[2] << 8));
                                     bot.Energy += bot.ShieldLevel;
-                                    bot.ShieldLevel = value;
-                                    if (value > bot.Energy)
+                                    bot.ShieldLevel = shieldLevel;
+                                    if (shieldLevel > bot.Energy)
                                         bot.Energy = 0;
                                     else
-                                        bot.Energy -= value;
+                                        bot.Energy -= shieldLevel;
                                     State = BotState.Ready;
                                     await SendMessage("OK");
                                     break;
                                 case "C": // cloack
+                                    if (result.Count < 3)
+                                    {
+                                        IsEnd = true;
+                                        State = BotState.Disconnect;
+                                        await webSocket.CloseAsync(WebSocketCloseStatus.ProtocolError, "Missing data in answer 'C'", CancellationToken.None);
+                                        return;
+                                    }
+                                    UInt16 cloackLevel = (UInt16)(buffer[1] + (buffer[2] << 8));
                                     bot.Energy += bot.CloackLevel;
-                                    bot.CloackLevel = value;
-                                    if (value > bot.Energy)
+                                    bot.CloackLevel = cloackLevel;
+                                    if (cloackLevel > bot.Energy)
                                         bot.Energy = 0;
                                     else
-                                        bot.Energy -= value;
+                                        bot.Energy -= cloackLevel;
                                     State = BotState.Ready;
                                     await SendMessage("OK");
                                     break;
                                 default:
                                     System.Diagnostics.Debug.WriteLine($"[ERROR] lost with command {command} for state Action");
-                                    break;
+                                    IsEnd = true;
+                                    State = BotState.Disconnect;
+                                    await webSocket.CloseAsync(WebSocketCloseStatus.ProtocolError, $"[ERROR] lost with command {command} for state Action", CancellationToken.None);
+                                    return;
                             }
                             break;
                         default:
                             System.Diagnostics.Debug.WriteLine($"[ERROR] lost with state {State}");
-                            break;
+                            IsEnd = true;
+                            State = BotState.Disconnect;
+                            await webSocket.CloseAsync(WebSocketCloseStatus.ProtocolError, $"[ERROR] lost with state {State}", CancellationToken.None);
+                            return;
                     }
 
                     /*var text = System.Text.Encoding.UTF8.GetString(buffer, 0, result.Count);
@@ -188,6 +240,7 @@ namespace BattleIA
         public async Task SendMessage(String text)
         {
             if (IsEnd) return;
+            System.Diagnostics.Debug.WriteLine($"Sending {text} to {bot.GUID}");
             var buffer = System.Text.Encoding.UTF8.GetBytes(text);
             try
             {
@@ -215,7 +268,7 @@ namespace BattleIA
                         bot.Energy--;
             }
             turn++;
-            var buffer = new byte[9];
+            var buffer = new byte[(byte)MessageSize.Turn];
             buffer[0] = System.Text.Encoding.ASCII.GetBytes("T")[0];
             buffer[1] = (byte)turn;
             buffer[2] = (byte)(turn >> 8);
@@ -228,6 +281,30 @@ namespace BattleIA
             try
             {
                 State = BotState.WaitingAnswerD;
+                System.Diagnostics.Debug.WriteLine($"Sending 'T' to {bot.GUID}");
+                await webSocket.SendAsync(new ArraySegment<byte>(buffer, 0, buffer.Length), WebSocketMessageType.Text, true, CancellationToken.None);
+            }
+            catch (Exception err)
+            {
+                System.Diagnostics.Debug.WriteLine($"[ERROR] {err.Message}");
+                State = BotState.Error;
+            }
+        }
+
+        public async Task SendChangeInfo()
+        {
+            if (IsEnd) return;
+            var buffer = new byte[(byte)MessageSize.Change];
+            buffer[0] = System.Text.Encoding.ASCII.GetBytes("C")[0];
+            buffer[1] = (byte)bot.Energy;
+            buffer[2] = (byte)(bot.Energy >> 8);
+            buffer[3] = (byte)bot.ShieldLevel;
+            buffer[4] = (byte)(bot.ShieldLevel >> 8);
+            buffer[5] = (byte)bot.CloackLevel;
+            buffer[6] = (byte)(bot.CloackLevel >> 8);
+            try
+            {
+                System.Diagnostics.Debug.WriteLine($"Sending 'C' to {bot.GUID}");
                 await webSocket.SendAsync(new ArraySegment<byte>(buffer, 0, buffer.Length), WebSocketMessageType.Text, true, CancellationToken.None);
             }
             catch (Exception err)
@@ -272,6 +349,7 @@ namespace BattleIA
             try
             {
                 State = BotState.WaitingAction;
+                System.Diagnostics.Debug.WriteLine($"Sending 'I' to {bot.GUID}");
                 await webSocket.SendAsync(new ArraySegment<byte>(buffer, 0, buffer.Length), WebSocketMessageType.Text, true, CancellationToken.None);
             }
             catch (Exception err)
@@ -282,5 +360,58 @@ namespace BattleIA
 
         }
 
+        public async Task DoMove(MoveDirection direction)
+        {
+            bot.Energy--;
+            int x = 0;
+            int y = 0;
+            switch (direction)
+            {
+                case MoveDirection.North: y = -1; break;
+                case MoveDirection.South: y = 1; break;
+                case MoveDirection.East: x = -1; break;
+                case MoveDirection.West: x = 1; break;
+                case MoveDirection.NorthWest: y = -1; x = 1; break;
+                case MoveDirection.NorthEast: y = -1; x = -1; break;
+                case MoveDirection.SouthWest: y = 1; x = 1; break;
+                case MoveDirection.SouthEast: y = 1; x = -1; break;
+            }
+            switch (MainGame.TheMap[bot.X + x, bot.Y + y])
+            {
+                case CaseState.Empty:
+                    MainGame.TheMap[bot.X, bot.Y] = CaseState.Empty;
+                    bot.X += x;
+                    bot.Y += y;
+                    MainGame.TheMap[bot.X, bot.Y] = CaseState.Ennemy;
+                    break;
+                case CaseState.Energy:
+                    MainGame.TheMap[bot.X, bot.Y] = CaseState.Empty;
+                    bot.X += x;
+                    bot.Y += y;
+                    MainGame.TheMap[bot.X, bot.Y] = CaseState.Ennemy;
+                    bot.Energy += (UInt16)(MainGame.RND.Next(50) + 1);
+                    break;
+                case CaseState.Ennemy:
+                    if (bot.ShieldLevel > 0)
+                        bot.ShieldLevel--;
+                    else
+                    {
+                        if (bot.Energy > 0)
+                            bot.Energy--;
+                    }
+                    // TODO: faire idem à l'ennemi !
+                    break;
+                case CaseState.Wall:
+                    if (bot.ShieldLevel > 0)
+                        bot.ShieldLevel--;
+                    else
+                    {
+                        if (bot.Energy > 0)
+                            bot.Energy--;
+                    }
+                    break;
+            }
+            await SendChangeInfo();
+        }
     }
 }
