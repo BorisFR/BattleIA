@@ -11,7 +11,9 @@ namespace SampleBot
     {
         //private static string serverUrl = "wss://localhost:44367/ia";
         //private static string serverUrl = "wss://10.26.1.182:44367/ia";
-        private static string serverUrl = "wss://ly0500:44367/ia";
+        //private static string serverUrl = "wss://ly0500:44367/ia";
+        //private static string serverUrl = "ws://ly0500:51973/ia";
+        private static string serverUrl = "ws://10.26.1.182:51973/ia";
 
         static void Main(string[] args)
         {
@@ -95,8 +97,9 @@ namespace SampleBot
                                 byte surface = buffer[1];
                                 int all = surface * surface;
                                 if (result.Count != (2 + all)) { Console.WriteLine($"[ERROR] wrong size for 'I': {result.Count}"); break; } // I#+data so 2 + surface :)
-                                var x = new ArraySegment<byte>(buffer, 0, all);
-                                ia.AreaInformation(surface, x.Array);
+                                var x = new byte[all];
+                                Array.Copy(buffer, 2, x, 0, all);
+                                ia.AreaInformation(surface, x);
                                 // must answer with action M / S / C / None
                                 var answerA = ia.GetAction(); // (byte)BotAction.None; // System.Text.Encoding.ASCII.GetBytes("N")[0];
                                 Console.WriteLine($"Sending Action: {(BotAction)answerA[0]}");
