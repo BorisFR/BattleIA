@@ -8,7 +8,10 @@ namespace SampleBot
 {
     class Program
     {
-        private static string serverUrl = "wss://localhost:44367/ia";
+        //private static string serverUrl = "wss://localhost:44367/ia";
+        //private static string serverUrl = "wss://10.26.1.182:44367/ia";
+        private static string serverUrl = "wss://ly0500:44367/ia";
+
         static void Main(string[] args)
         {
             Console.WriteLine("SampleBot");
