@@ -131,7 +131,23 @@ namespace BattleIA
                 }
                 else
                 {
-                    await next();
+                    if (context.Request.Path == "/display")
+                    {
+                        if (context.WebSockets.IsWebSocketRequest)
+                        {
+                            // on l'ajoute à notre jeu !
+                            WebSocket webSocket = await context.WebSockets.AcceptWebSocketAsync();
+                            await MainGame.AddViewer(webSocket);
+                        }
+                        else
+                        {
+                            context.Response.StatusCode = 400;
+                        }
+                    }
+                    else
+                    {
+                        await next();
+                    }
                 }
 
             });

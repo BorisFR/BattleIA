@@ -8,9 +8,10 @@ namespace BattleIA
 {
     public static class MainGame
     {
-        public static UInt16 MapWidth = 30;
-        public static UInt16 MapHeight = 20;
-        private static UInt16 percentEnergy = 10;
+        public static UInt16 MapWidth = 32;
+        public static UInt16 MapHeight = 22;
+        private static UInt16 percentWall = 3;
+        private static UInt16 percentEnergy = 5;
         public static CaseState[,] TheMap = null;
 
         public static Random RND = new Random();
@@ -33,6 +34,13 @@ namespace BattleIA
                 }
             }
             int availableCases = (MapWidth - 2) * (MapHeight - 2);
+            int wallToPlace = percentWall * availableCases / 100;
+            for (int n = 0; n < wallToPlace; n++)
+            {
+                UInt16 x, y;
+                SearchEmptyCase(out x, out y);
+                TheMap[x, y] = CaseState.Wall;
+            }
             int energyToPlace = percentEnergy * availableCases / 100;
             for (int n = 0; n < energyToPlace; n++)
             {
@@ -54,6 +62,49 @@ namespace BattleIA
                     ok = true;
                 }
             } while (!ok);
+        }
+
+        private static Object lockListViewer = new Object();
+        private static List<OneViewer> allViewer = new List<OneViewer>();
+
+        public static async Task AddViewer(WebSocket webSocket)
+        {
+            OneViewer client = new OneViewer(webSocket);
+            List<OneViewer> toRemove = new List<OneViewer>();
+            lock (lockListViewer)
+            {
+                foreach (OneViewer o in allViewer)
+                {
+                    if (o.MustRemove)
+                        toRemove.Add(o);
+                }
+                allViewer.Add(client);
+            };
+            foreach (OneViewer o in toRemove)
+                RemoveViewer(o.ClientGuid);
+            System.Diagnostics.Debug.WriteLine($"#viewer: {allViewer.Count}");
+            // on se met à l'écoute des messages de ce client
+            await client.WaitReceive();
+            RemoveViewer(client.ClientGuid);
+        }
+
+        public static void RemoveViewer(Guid guid)
+        {
+            lock (lockListViewer)
+            {
+                OneViewer toRemove = null;
+                foreach (OneViewer o in allViewer)
+                {
+                    if (o.ClientGuid == guid)
+                    {
+                        toRemove = o;
+                        break;
+                    }
+                }
+                if (toRemove != null)
+                    allViewer.Remove(toRemove);
+            }
+            System.Diagnostics.Debug.WriteLine($"#viewer: {allViewer.Count}");
         }
 
         /// <summary>
