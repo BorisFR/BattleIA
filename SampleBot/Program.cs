@@ -66,16 +66,16 @@ namespace SampleBot
                         switch (command)
                         {
                             case "O": // OK, rien à faire
-                                if (result.Count != (int)MessageSize.OK) break;
-                                Console.WriteLine("Waiting our turn...");
+                                if (result.Count != (int)MessageSize.OK) { Console.WriteLine($"[ERROR] wrong size for 'OK': {result.Count}"); break; }
+                                Console.WriteLine("OK, waiting our turn...");
                                 break;
                             case "T": // nouveau tour, attend le niveau de détection désiré
-                                if (result.Count != (int)MessageSize.Turn) break;
+                                if (result.Count != (int)MessageSize.Turn) { Console.WriteLine($"[ERROR] wrong size for 'T': {result.Count}"); DebugWriteArray(buffer, result.Count); break; }
                                 turn = (UInt16)(buffer[1] + (buffer[2] << 8));
                                 bot.Energy = (UInt16)(buffer[3] + (buffer[4] << 8));
                                 bot.ShieldLevel = (UInt16)(buffer[5] + (buffer[6] << 8));
                                 bot.CloackLevel = (UInt16)(buffer[7] + (buffer[8] << 8));
-                                Console.WriteLine($"Turn #{serverUrl} - Energy: {bot.Energy}, Shield: {bot.ShieldLevel}, Cloack: {bot.CloackLevel}");
+                                Console.WriteLine($"Turn #{turn} - Energy: {bot.Energy}, Shield: {bot.ShieldLevel}, Cloack: {bot.CloackLevel}");
                                 // must answer with D#
                                 var answerD = new byte[2];
                                 answerD[0] = System.Text.Encoding.ASCII.GetBytes("D")[0];
@@ -86,7 +86,7 @@ namespace SampleBot
                             case "I": // info sur détection, attend l'action à effectuer
                                 byte surface = buffer[1];
                                 int all = surface * surface;
-                                if (result.Count != (2 + all)) break; // I#+data so 2 + surface :)
+                                if (result.Count != (2 + all)) { Console.WriteLine($"[ERROR] wrong size for 'I': {result.Count}"); break; } // I#+data so 2 + surface :)
                                 // must answer with action M / S / C / None
                                 var answerA = new byte[1];
                                 answerA[0] = (byte)BattleIA.Action.None; // System.Text.Encoding.ASCII.GetBytes("N")[0];
@@ -108,6 +108,17 @@ namespace SampleBot
                 }
             } // while
 
+        } // DoWork
+
+        private static void DebugWriteArray(byte[] data, int length)
+        {
+            if (length == 0) return;
+            Console.Write($"[{data[0]}");
+            for (int i = 1; i < length; i++)
+            {
+                Console.Write($", {data[i]}");
+            }
+            Console.Write("]");
         }
     }
 }

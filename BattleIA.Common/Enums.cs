@@ -38,6 +38,6 @@ namespace BattleIA
     public enum MessageSize : byte
     {
         OK = 2,
-        Turn = 20,
+        Turn = 9,
     }
 }
