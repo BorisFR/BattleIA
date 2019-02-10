@@ -102,7 +102,7 @@ namespace BattleIA
                     }
                 } // réception GUID
                 else
-                {
+                { // exécute une action
                     if (result.Count < 1)
                     {
                         IsEnd = true;
@@ -130,7 +130,21 @@ namespace BattleIA
                             }
                             // do a scan of size value and send answer
                             byte distance = buffer[1];
-                            await DoScan(distance);
+                            if (distance > 0)
+                            {
+                                if (distance < bot.Energy)
+                                {
+                                    bot.Energy-=distance;
+                                    await SendChangeInfo();
+                                    await DoScan(distance);
+                                }
+                                else
+                                {
+                                    // TODO: is dead :(
+                                    bot.Energy = 0;
+                                    await SendChangeInfo();
+                                }
+                            }
                             break;
                         case BotState.WaitingAction:
                             Action action = (Action)buffer[0];
@@ -165,7 +179,10 @@ namespace BattleIA
                                     bot.Energy += bot.ShieldLevel;
                                     bot.ShieldLevel = shieldLevel;
                                     if (shieldLevel > bot.Energy)
+                                    {
                                         bot.Energy = 0;
+                                        // TODO: is dead :(
+                                    }
                                     else
                                         bot.Energy -= shieldLevel;
                                     State = BotState.Ready;
@@ -183,7 +200,10 @@ namespace BattleIA
                                     bot.Energy += bot.CloackLevel;
                                     bot.CloackLevel = cloackLevel;
                                     if (cloackLevel > bot.Energy)
+                                    {
                                         bot.Energy = 0;
+                                        // TODO: is dead :(
+                                    }
                                     else
                                         bot.Energy -= cloackLevel;
                                     State = BotState.Ready;
@@ -191,6 +211,11 @@ namespace BattleIA
                                     break;
                                 case Action.Fire:
                                     // TODO: effectuer le tir :)
+                                    bot.Energy--;
+                                    if (bot.Energy == 0)
+                                    {
+                                        // TODO: is dead :(
+                                    }
                                     State = BotState.Ready;
                                     await SendMessage("OK");
                                     break;
@@ -272,6 +297,10 @@ namespace BattleIA
                 if (bot.CloackLevel > 0)
                     if (bot.Energy > 0)
                         bot.Energy--;
+            }
+            if (bot.Energy == 0)
+            {
+                // TODO: is dead :(
             }
             turn++;
             var buffer = new byte[(byte)MessageSize.Turn];
@@ -416,6 +445,10 @@ namespace BattleIA
                             bot.Energy--;
                     }
                     break;
+            }
+            if (bot.Energy == 0)
+            {
+                // TODO: is dead :(
             }
             await SendChangeInfo();
         }
