@@ -110,10 +110,10 @@ namespace BattleIA
                         await webSocket.CloseAsync(WebSocketCloseStatus.ProtocolError, "Missing data in answer", CancellationToken.None);
                         return;
                     }
-                    string command = System.Text.Encoding.UTF8.GetString(buffer, 0, 1);
                     switch (State)
                     {
                         case BotState.WaitingAnswerD:
+                            string command = System.Text.Encoding.UTF8.GetString(buffer, 0, 1);
                             if (command != "D")
                             {
                                 IsEnd = true;
@@ -133,13 +133,14 @@ namespace BattleIA
                             await DoScan(distance);
                             break;
                         case BotState.WaitingAction:
-                            switch (command)
+                            Action action = (Action)buffer[0];
+                            switch (action)
                             {
-                                case "N": // None
+                                case Action.None: // None
                                     State = BotState.Ready;
                                     await SendMessage("OK");
                                     break;
-                                case "M": // move
+                                case Action.Move: // move
                                     if (result.Count < 2)
                                     {
                                         IsEnd = true;
@@ -152,7 +153,7 @@ namespace BattleIA
                                     State = BotState.Ready;
                                     await SendMessage("OK");
                                     break;
-                                case "S": // shield
+                                case Action.ShieldLevel: // shield
                                     if (result.Count < 3)
                                     {
                                         IsEnd = true;
@@ -170,7 +171,7 @@ namespace BattleIA
                                     State = BotState.Ready;
                                     await SendMessage("OK");
                                     break;
-                                case "C": // cloack
+                                case Action.CloackLevel: // cloack
                                     if (result.Count < 3)
                                     {
                                         IsEnd = true;
@@ -188,11 +189,16 @@ namespace BattleIA
                                     State = BotState.Ready;
                                     await SendMessage("OK");
                                     break;
+                                case Action.Fire:
+                                    // TODO: effectuer le tir :)
+                                    State = BotState.Ready;
+                                    await SendMessage("OK");
+                                    break;
                                 default:
-                                    System.Diagnostics.Debug.WriteLine($"[ERROR] lost with command {command} for state Action");
+                                    System.Diagnostics.Debug.WriteLine($"[ERROR] lost with command {action} for state Action");
                                     IsEnd = true;
                                     State = BotState.Disconnect;
-                                    await webSocket.CloseAsync(WebSocketCloseStatus.ProtocolError, $"[ERROR] lost with command {command} for state Action", CancellationToken.None);
+                                    await webSocket.CloseAsync(WebSocketCloseStatus.ProtocolError, $"[ERROR] lost with command {action} for state Action", CancellationToken.None);
                                     return;
                             }
                             break;
