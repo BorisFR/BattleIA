@@ -20,7 +20,7 @@ namespace BattleIA
         /// <summary>
         /// Numéro de tour dans le jeu
         /// </summary>
-        private UInt32 turn = 0;
+        private UInt16 turn = 0;
 
         public OneClient(WebSocket webSocket)
         {
@@ -41,7 +41,8 @@ namespace BattleIA
             try
             {
                 result = await webSocket.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None);
-            }catch(Exception err)
+            }
+            catch (Exception err)
             {
                 System.Diagnostics.Debug.WriteLine($"[ERROR] {err.Message}");
                 IsEnd = true;

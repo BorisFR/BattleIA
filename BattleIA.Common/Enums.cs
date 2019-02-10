@@ -25,4 +25,19 @@ namespace BattleIA
         Energy = 3,
         Ennemy = 4,
     }
+
+    public enum Action : byte
+    {
+        None = 0,
+        Move = 1,
+        ShieldLevel = 2,
+        CloackLevel = 3,
+        Fire = 4,
+    }
+
+    public enum MessageSize : byte
+    {
+        OK = 2,
+        Turn = 20,
+    }
 }

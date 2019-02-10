@@ -3,6 +3,7 @@ using System.Net.WebSockets;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using BattleIA;
 
 namespace SampleBot
 {
@@ -21,8 +22,16 @@ namespace SampleBot
             Console.ReadLine();
         }
 
+        private static MyIA ia = new MyIA();
+        private static Bot bot = new Bot();
+        private static UInt16 turn = 0;
+
+
         static async Task DoWork()
         {
+
+            // 1 - connect to server
+
             var client = new ClientWebSocket();
             Console.WriteLine($"Connecting to {serverUrl}");
             try
@@ -34,9 +43,14 @@ namespace SampleBot
                 Console.WriteLine($"[ERROR] {err.Message}");
                 return;
             }
+
+            // 2 - Hello message with or GUID
+
             Guid guid = Guid.NewGuid();
             var bytes = Encoding.UTF8.GetBytes(guid.ToString());
             await client.SendAsync(new ArraySegment<byte>(bytes), WebSocketMessageType.Text, true, CancellationToken.None);
+
+            // 3 - wait data from server
 
             var buffer = new byte[1024 * 4];
             while (true)
@@ -48,30 +62,48 @@ namespace SampleBot
                     if (result.Count > 1)
                     {
                         string command = System.Text.Encoding.UTF8.GetString(buffer, 0, 1);
-                        byte value = buffer[1];
                         switch (command)
                         {
                             case "O": // OK, rien à faire
+                                if (result.Count != (int)MessageSize.OK) break;
+                                Console.WriteLine("Waiting or turn...");
                                 break;
                             case "T": // nouveau tour, attend le niveau de détection désiré
+                                if (result.Count != (int)MessageSize.Turn) break;
+                                turn = (UInt16)(buffer[1] + (buffer[2] << 8));
+                                bot.Energy = (UInt16)(buffer[3] + (buffer[4] << 8));
+                                bot.ShieldLevel = (UInt16)(buffer[5] + (buffer[6] << 8));
+                                bot.CloackLevel = (UInt16)(buffer[7] + (buffer[8] << 8));
+                                Console.WriteLine($"Turn #{serverUrl} - Energy: {bot.Energy}, Shield: {bot.ShieldLevel}, Cloack: {bot.CloackLevel}");
+                                // must answer with D#
+                                var answerD = new byte[2];
+                                answerD[0] = System.Text.Encoding.ASCII.GetBytes("D")[0];
+                                answerD[1] = ia.GetScanSurface();
+                                await client.SendAsync(new ArraySegment<byte>(answerD), WebSocketMessageType.Text, true, CancellationToken.None);
                                 break;
                             case "I": // info sur détection, attend l'action à effectuer
+                                byte surface = buffer[1];
+                                int all = surface * surface;
+                                if (result.Count != (2 + all)) break; // I#+data so 2 + surface :)
+                                // must answer with action M / S / C / None
+                                var answerA = new byte[1];
+                                answerA[0] = System.Text.Encoding.ASCII.GetBytes("N")[0];
+                                await client.SendAsync(new ArraySegment<byte>(answerA), WebSocketMessageType.Text, true, CancellationToken.None);
                                 break;
                         }
-                    }
+                    } // if count > 1
                     else
                     {
                         Console.WriteLine("[ERROR] " + Encoding.UTF8.GetString(buffer, 0, result.Count));
                     }
-                }
-
+                } // if text
                 else if (result.MessageType == WebSocketMessageType.Close)
                 {
                     Console.WriteLine($"End with code {result.CloseStatus}: {result.CloseStatusDescription}");
                     await client.CloseOutputAsync(WebSocketCloseStatus.NormalClosure, "", CancellationToken.None);
                     break;
                 }
-            }
+            } // while
 
         }
     }
