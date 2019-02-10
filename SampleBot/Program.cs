@@ -83,14 +83,21 @@ namespace SampleBot
                                 Console.WriteLine($"Sending Scan: {answerD[1]}");
                                 await client.SendAsync(new ArraySegment<byte>(answerD), WebSocketMessageType.Text, true, CancellationToken.None);
                                 break;
+                            case "C": // nos infos ont changées
+                                if (result.Count != (int)MessageSize.Change) { Console.WriteLine($"[ERROR] wrong size for 'C': {result.Count}"); DebugWriteArray(buffer, result.Count); break; }
+                                bot.Energy = (UInt16)(buffer[1] + (buffer[2] << 8));
+                                bot.ShieldLevel = (UInt16)(buffer[3] + (buffer[4] << 8));
+                                bot.CloackLevel = (UInt16)(buffer[5] + (buffer[6] << 8));
+                                Console.WriteLine($"Change - Energy: {bot.Energy}, Shield: {bot.ShieldLevel}, Cloack: {bot.CloackLevel}");
+                                // nothing to reply
+                                break;
                             case "I": // info sur détection, attend l'action à effectuer
                                 byte surface = buffer[1];
                                 int all = surface * surface;
                                 if (result.Count != (2 + all)) { Console.WriteLine($"[ERROR] wrong size for 'I': {result.Count}"); break; } // I#+data so 2 + surface :)
                                 // must answer with action M / S / C / None
-                                var answerA = new byte[1];
-                                answerA[0] = (byte)BattleIA.Action.None; // System.Text.Encoding.ASCII.GetBytes("N")[0];
-                                Console.WriteLine($"Sending Action: {answerA[0]}");
+                                var answerA = ia.GetAction(); // (byte)BattleIA.Action.None; // System.Text.Encoding.ASCII.GetBytes("N")[0];
+                                Console.WriteLine($"Sending Action: {(BattleIA.Action)answerA[0]}");
                                 await client.SendAsync(new ArraySegment<byte>(answerA), WebSocketMessageType.Text, true, CancellationToken.None);
                                 break;
                         }
