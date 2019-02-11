@@ -17,7 +17,7 @@ namespace BattleIA
         public DateTime StartTime;
         public int ShortID;
 
-        public int X;
-        public int Y;
+        public byte X;
+        public byte Y;
     }
 }

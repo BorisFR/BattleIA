@@ -17,7 +17,7 @@ namespace BattleIA
         public static Random RND = new Random();
 
         private static Object lockList = new Object();
-        private static List<OneClient> allClients = new List<OneClient>();
+        public static List<OneClient> AllBot = new List<OneClient>();
 
         public static void InitNewMap()
         {
@@ -37,26 +37,26 @@ namespace BattleIA
             int wallToPlace = percentWall * availableCases / 100;
             for (int n = 0; n < wallToPlace; n++)
             {
-                UInt16 x, y;
+                byte x, y;
                 SearchEmptyCase(out x, out y);
                 TheMap[x, y] = CaseState.Wall;
             }
             int energyToPlace = percentEnergy * availableCases / 100;
             for (int n = 0; n < energyToPlace; n++)
             {
-                UInt16 x, y;
+                byte x, y;
                 SearchEmptyCase(out x, out y);
                 TheMap[x, y] = CaseState.Energy;
             }
         }
 
-        public static void SearchEmptyCase(out UInt16 x, out UInt16 y)
+        public static void SearchEmptyCase(out byte x, out byte y)
         {
             bool ok = false;
             do
             {
-                x = (UInt16)(RND.Next(MapWidth - 2) + 1);
-                y = (UInt16)(RND.Next(MapHeight - 2) + 1);
+                x = (byte)(RND.Next(MapWidth - 2) + 1);
+                y = (byte)(RND.Next(MapHeight - 2) + 1);
                 if (TheMap[x, y] == CaseState.Empty)
                 {
                     ok = true;
@@ -90,9 +90,9 @@ namespace BattleIA
 
         public static void RemoveViewer(Guid guid)
         {
+            OneViewer toRemove = null;
             lock (lockListViewer)
             {
-                OneViewer toRemove = null;
                 foreach (OneViewer o in allViewer)
                 {
                     if (o.ClientGuid == guid)
@@ -119,17 +119,17 @@ namespace BattleIA
             lock (lockList)
             {
                 // au cas où, on en profite pour faire le ménage
-                foreach (OneClient o in allClients)
+                foreach (OneClient o in AllBot)
                 {
                     if (o.State == BotState.Error || o.State == BotState.Disconnect)
                         toRemove.Add(o);
                 }
-                allClients.Add(client);
+                AllBot.Add(client);
             };
             // fin du ménage
             foreach (OneClient o in toRemove)
                 Remove(o.ClientGuid);
-            System.Diagnostics.Debug.WriteLine($"#clients: {allClients.Count}");
+            System.Diagnostics.Debug.WriteLine($"#clients: {AllBot.Count}");
             // on se met à l'écoute des messages de ce client
             await client.WaitReceive();
             // arrivé ici, c'est que le client s'est déconnecté
@@ -144,10 +144,10 @@ namespace BattleIA
         /// <param name="guid">l'id du client qu'il faut enlever</param>
         public static void Remove(Guid guid)
         {
+            OneClient toRemove = null;
             lock (lockList)
             {
-                OneClient toRemove = null;
-                foreach (OneClient o in allClients)
+                foreach (OneClient o in AllBot)
                 {
                     if (o.ClientGuid == guid)
                     {
@@ -156,9 +156,13 @@ namespace BattleIA
                     }
                 }
                 if (toRemove != null)
-                    allClients.Remove(toRemove);
+                    AllBot.Remove(toRemove);
             }
-            System.Diagnostics.Debug.WriteLine($"#clients: {allClients.Count}");
+            if (toRemove != null)
+            {
+                RefreshViewer();
+            }
+            System.Diagnostics.Debug.WriteLine($"#clients: {AllBot.Count}");
         }
 
         /// <summary>
@@ -169,13 +173,35 @@ namespace BattleIA
         /// </summary>
         /// <param name="text"></param>
         /// <returns></returns>
-        public static async Task Broadcast(string text)
+        public static void Broadcast(string text)
         {
             lock (lockList)
             {
-                foreach (OneClient o in allClients)
+                foreach (OneClient o in AllBot)
                 {
                     o.SendMessage(text);
+                }
+            }
+        }
+
+        public static void RefreshViewer()
+        {
+            lock (lockListViewer)
+            {
+                foreach (OneViewer o in allViewer)
+                {
+                    o.SendMapInfo();
+                }
+            }
+        }
+
+        public static void ViewerMovePlayer(byte x1, byte y1, byte x2, byte y2)
+        {
+            lock (lockListViewer)
+            {
+                foreach (OneViewer o in allViewer)
+                {
+                    o.SendMovePlayer(x1, y1, x2, y2);
                 }
             }
         }

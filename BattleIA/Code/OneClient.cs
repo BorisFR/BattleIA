@@ -81,20 +81,24 @@ namespace BattleIA
                     if (Guid.TryParse(text, out bot.GUID))
                     {
                         // et qu'il soit ok !
-                        System.Diagnostics.Debug.WriteLine($"[NEW CLIENT] {bot.GUID}");
-                        UInt16 x, y;
+                        byte x, y;
                         MainGame.SearchEmptyCase(out x, out y);
                         MainGame.TheMap[x, y] = CaseState.Ennemy;
                         bot.X = x;
                         bot.Y = y;
                         bot.Energy = 100;
+                        System.Diagnostics.Debug.WriteLine($"[NEW CLIENT] {bot.GUID} @ {x}/{y}");
 
                         State = BotState.Ready;
                         await SendMessage("OK");
+
+                        MainGame.RefreshViewer();
+
                         await StartNewTurn();
                     }
                     else
                     {
+                        MainGame.TheMap[bot.X, bot.Y] = CaseState.Empty;
                         IsEnd = true;
                         State = BotState.Disconnect;
                         await webSocket.CloseAsync(WebSocketCloseStatus.ProtocolError, $"[{text}] is not a GUID", CancellationToken.None);
@@ -105,6 +109,7 @@ namespace BattleIA
                 { // exécute une action
                     if (result.Count < 1)
                     {
+                        MainGame.TheMap[bot.X, bot.Y] = CaseState.Empty;
                         IsEnd = true;
                         State = BotState.Disconnect;
                         await webSocket.CloseAsync(WebSocketCloseStatus.ProtocolError, "Missing data in answer", CancellationToken.None);
@@ -116,6 +121,7 @@ namespace BattleIA
                             string command = System.Text.Encoding.UTF8.GetString(buffer, 0, 1);
                             if (command != "D")
                             {
+                                MainGame.TheMap[bot.X, bot.Y] = CaseState.Empty;
                                 IsEnd = true;
                                 State = BotState.Disconnect;
                                 await webSocket.CloseAsync(WebSocketCloseStatus.ProtocolError, $"[ERROR] Not the right answer, waiting D#, receive {command}", CancellationToken.None);
@@ -123,6 +129,7 @@ namespace BattleIA
                             }
                             if (result.Count < 1)
                             {
+                                MainGame.TheMap[bot.X, bot.Y] = CaseState.Empty;
                                 IsEnd = true;
                                 State = BotState.Disconnect;
                                 await webSocket.CloseAsync(WebSocketCloseStatus.ProtocolError, "Missing data in answer 'D'", CancellationToken.None);
@@ -157,6 +164,7 @@ namespace BattleIA
                                 case BotAction.Move: // move
                                     if (result.Count < 2)
                                     {
+                                        MainGame.TheMap[bot.X, bot.Y] = CaseState.Empty;
                                         IsEnd = true;
                                         State = BotState.Disconnect;
                                         await webSocket.CloseAsync(WebSocketCloseStatus.ProtocolError, "Missing data in answer 'M'", CancellationToken.None);
@@ -170,6 +178,7 @@ namespace BattleIA
                                 case BotAction.ShieldLevel: // shield
                                     if (result.Count < 3)
                                     {
+                                        MainGame.TheMap[bot.X, bot.Y] = CaseState.Empty;
                                         IsEnd = true;
                                         State = BotState.Disconnect;
                                         await webSocket.CloseAsync(WebSocketCloseStatus.ProtocolError, "Missing data in answer 'S'", CancellationToken.None);
@@ -191,6 +200,7 @@ namespace BattleIA
                                 case BotAction.CloackLevel: // cloack
                                     if (result.Count < 3)
                                     {
+                                        MainGame.TheMap[bot.X, bot.Y] = CaseState.Empty;
                                         IsEnd = true;
                                         State = BotState.Disconnect;
                                         await webSocket.CloseAsync(WebSocketCloseStatus.ProtocolError, "Missing data in answer 'C'", CancellationToken.None);
@@ -221,6 +231,7 @@ namespace BattleIA
                                     break;
                                 default:
                                     System.Diagnostics.Debug.WriteLine($"[ERROR] lost with command {action} for state Action");
+                                    MainGame.TheMap[bot.X, bot.Y] = CaseState.Empty;
                                     IsEnd = true;
                                     State = BotState.Disconnect;
                                     await webSocket.CloseAsync(WebSocketCloseStatus.ProtocolError, $"[ERROR] lost with command {action} for state Action", CancellationToken.None);
@@ -229,6 +240,7 @@ namespace BattleIA
                             break;
                         default:
                             System.Diagnostics.Debug.WriteLine($"[ERROR] lost with state {State}");
+                            MainGame.TheMap[bot.X, bot.Y] = CaseState.Empty;
                             IsEnd = true;
                             State = BotState.Disconnect;
                             await webSocket.CloseAsync(WebSocketCloseStatus.ProtocolError, $"[ERROR] lost with state {State}", CancellationToken.None);
@@ -253,6 +265,8 @@ namespace BattleIA
                 catch (Exception err)
                 {
                     System.Diagnostics.Debug.WriteLine($"[ERROR] {err.Message}");
+                    if (MainGame.TheMap[bot.X, bot.Y] == CaseState.Ennemy)
+                        MainGame.TheMap[bot.X, bot.Y] = CaseState.Empty;
                     IsEnd = true;
                     State = BotState.Disconnect;
                     try
@@ -263,6 +277,8 @@ namespace BattleIA
                     return;
                 }
             }
+            if (MainGame.TheMap[bot.X, bot.Y] == CaseState.Ennemy)
+                MainGame.TheMap[bot.X, bot.Y] = CaseState.Empty;
             await webSocket.CloseAsync(result.CloseStatus.Value, result.CloseStatusDescription, CancellationToken.None);
             IsEnd = true;
             State = BotState.Disconnect;
@@ -279,6 +295,8 @@ namespace BattleIA
             }
             catch (Exception err)
             {
+                if (MainGame.TheMap[bot.X, bot.Y] == CaseState.Ennemy)
+                    MainGame.TheMap[bot.X, bot.Y] = CaseState.Empty;
                 System.Diagnostics.Debug.WriteLine($"[ERROR] {err.Message}");
                 State = BotState.Error;
             }
@@ -321,6 +339,8 @@ namespace BattleIA
             }
             catch (Exception err)
             {
+                if (MainGame.TheMap[bot.X, bot.Y] == CaseState.Ennemy)
+                    MainGame.TheMap[bot.X, bot.Y] = CaseState.Empty;
                 System.Diagnostics.Debug.WriteLine($"[ERROR] {err.Message}");
                 State = BotState.Error;
             }
@@ -344,6 +364,8 @@ namespace BattleIA
             }
             catch (Exception err)
             {
+                if (MainGame.TheMap[bot.X, bot.Y] == CaseState.Ennemy)
+                    MainGame.TheMap[bot.X, bot.Y] = CaseState.Empty;
                 System.Diagnostics.Debug.WriteLine($"[ERROR] {err.Message}");
                 State = BotState.Error;
             }
@@ -357,11 +379,11 @@ namespace BattleIA
             buffer[0] = System.Text.Encoding.ASCII.GetBytes("I")[0];
             buffer[1] = (byte)(distance);
             UInt16 posByte = 2;
-            int posY = bot.Y - size;
-            for (UInt16 i = 0; i < (2*size+1); i++)
+            int posY = bot.Y + size;
+            for (UInt16 j = 0; j < (2 * size + 1); j++)
             {
                 int posX = bot.X - size;
-                for (UInt16 j = 0; j < (2*size+1); j++)
+                for (UInt16 i = 0; i < (2 * size + 1); i++)
                 {
                     if (posX < 0 || posX >= MainGame.MapWidth || posY < 0 || posY >= MainGame.MapHeight)
                     {
@@ -373,7 +395,7 @@ namespace BattleIA
                     }
                     posX++;
                 }
-                posY++;
+                posY--;
             }
             try
             {
@@ -383,6 +405,8 @@ namespace BattleIA
             }
             catch (Exception err)
             {
+                if (MainGame.TheMap[bot.X, bot.Y] == CaseState.Ennemy)
+                    MainGame.TheMap[bot.X, bot.Y] = CaseState.Empty;
                 System.Diagnostics.Debug.WriteLine($"[ERROR] {err.Message}");
                 State = BotState.Error;
             }
@@ -395,30 +419,33 @@ namespace BattleIA
             int x = 0;
             int y = 0;
             switch (direction)
-            {
-                case MoveDirection.North: y = -1; break;
-                case MoveDirection.South: y = 1; break;
+            {// TODO: check if it is ok for east/west. Ok for north/south
+                case MoveDirection.North: y = 1; break;
+                case MoveDirection.South: y = -1; break;
                 case MoveDirection.East: x = -1; break;
                 case MoveDirection.West: x = 1; break;
-                case MoveDirection.NorthWest: y = -1; x = 1; break;
-                case MoveDirection.NorthEast: y = -1; x = -1; break;
-                case MoveDirection.SouthWest: y = 1; x = 1; break;
-                case MoveDirection.SouthEast: y = 1; x = -1; break;
+                case MoveDirection.NorthWest: y = 1; x = 1; break;
+                case MoveDirection.NorthEast: y = 1; x = -1; break;
+                case MoveDirection.SouthWest: y = -1; x = 1; break;
+                case MoveDirection.SouthEast: y = -1; x = -1; break;
             }
             switch (MainGame.TheMap[bot.X + x, bot.Y + y])
             {
                 case CaseState.Empty:
+                    MainGame.ViewerMovePlayer(bot.X, bot.Y, (byte)(bot.X + x), (byte)(bot.Y + y));
                     MainGame.TheMap[bot.X, bot.Y] = CaseState.Empty;
-                    bot.X += x;
-                    bot.Y += y;
+                    bot.X = (byte)(bot.X + x);
+                    bot.Y = (byte)(bot.Y+y);
                     MainGame.TheMap[bot.X, bot.Y] = CaseState.Ennemy;
                     break;
                 case CaseState.Energy:
+                    MainGame.ViewerMovePlayer(bot.X, bot.Y, (byte)(bot.X + x), (byte)(bot.Y + y));
                     MainGame.TheMap[bot.X, bot.Y] = CaseState.Empty;
-                    bot.X += x;
-                    bot.Y += y;
+                    bot.X = (byte)(bot.X + x);
+                    bot.Y = (byte)(bot.Y + y);
                     MainGame.TheMap[bot.X, bot.Y] = CaseState.Ennemy;
                     bot.Energy += (UInt16)(MainGame.RND.Next(50) + 1);
+                    //MainGame.RefreshViewer();
                     break;
                 case CaseState.Ennemy:
                     if (bot.ShieldLevel > 0)

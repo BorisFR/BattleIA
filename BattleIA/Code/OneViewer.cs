@@ -86,7 +86,7 @@ namespace BattleIA
             await webSocket.CloseAsync(result.CloseStatus.Value, result.CloseStatusDescription, CancellationToken.None);
         }
 
-        private async Task SendMapInfo()
+        public async Task SendMapInfo()
         {
             var buffer = new byte[5 + MainGame.MapWidth * MainGame.MapHeight];
             buffer[0] = System.Text.Encoding.ASCII.GetBytes("M")[0];
@@ -98,9 +98,34 @@ namespace BattleIA
             for (int j = 0; j < MainGame.MapHeight; j++)
                 for (int i = 0; i < MainGame.MapWidth; i++)
                     buffer[index++] = (byte)MainGame.TheMap[i, j];
+            /*foreach(OneClient oc in MainGame.AllBot)
+            {
+                buffer[5 + oc.bot.X +( oc.bot.Y * MainGame.MapWidth)] = (byte)CaseState.Ennemy;
+            }*/
             try
             {
                 System.Diagnostics.Debug.WriteLine("[VIEWER] Sending MAPINFO");
+                await webSocket.SendAsync(new ArraySegment<byte>(buffer, 0, buffer.Length), WebSocketMessageType.Text, true, CancellationToken.None);
+            }
+            catch (Exception err)
+            {
+                System.Diagnostics.Debug.WriteLine($"[VIEWER ERROR] {err.Message}");
+                MustRemove = true;
+            }
+        }
+
+
+        public async Task SendMovePlayer(byte x1, byte y1, byte x2, byte y2)
+        {
+            var buffer = new byte[5];
+            buffer[0] = System.Text.Encoding.ASCII.GetBytes("P")[0];
+            buffer[1] = x1;
+            buffer[2] = y1;
+            buffer[3] = x2;
+            buffer[4] = y2;
+            try
+            {
+                System.Diagnostics.Debug.WriteLine("[VIEWER] Sending move player");
                 await webSocket.SendAsync(new ArraySegment<byte>(buffer, 0, buffer.Length), WebSocketMessageType.Text, true, CancellationToken.None);
             }
             catch (Exception err)
