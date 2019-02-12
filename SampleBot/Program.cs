@@ -78,6 +78,8 @@ namespace SampleBot
                                 bot.ShieldLevel = (UInt16)(buffer[5] + (buffer[6] << 8));
                                 bot.CloackLevel = (UInt16)(buffer[7] + (buffer[8] << 8));
                                 Console.WriteLine($"Turn #{turn} - Energy: {bot.Energy}, Shield: {bot.ShieldLevel}, Cloack: {bot.CloackLevel}");
+                                ia.StatusReport(turn, bot.Energy, bot.ShieldLevel, false);
+                                if (bot.Energy == 0) break;
                                 // must answer with D#
                                 var answerD = new byte[2];
                                 answerD[0] = System.Text.Encoding.ASCII.GetBytes("D")[0];
@@ -91,7 +93,9 @@ namespace SampleBot
                                 bot.ShieldLevel = (UInt16)(buffer[3] + (buffer[4] << 8));
                                 bot.CloackLevel = (UInt16)(buffer[5] + (buffer[6] << 8));
                                 Console.WriteLine($"Change - Energy: {bot.Energy}, Shield: {bot.ShieldLevel}, Cloack: {bot.CloackLevel}");
+                                ia.StatusReport(turn, bot.Energy, bot.ShieldLevel, false);
                                 // nothing to reply
+                                if (bot.Energy == 0) break;
                                 break;
                             case "I": // info sur détection, attend l'action à effectuer
                                 byte surface = buffer[1];
@@ -119,7 +123,7 @@ namespace SampleBot
                     break;
                 }
             } // while
-
+            Console.WriteLine("Just dead!");
         } // DoWork
 
         private static void DebugWriteArray(byte[] data, int length)
