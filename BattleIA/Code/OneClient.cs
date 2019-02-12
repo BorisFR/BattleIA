@@ -150,11 +150,12 @@ namespace BattleIA
                                 {
                                     // TODO: is dead :(
                                     bot.Energy = 0;
+                                    State = BotState.WaitingAction;
                                     await SendChangeInfo();
                                 }
                             } else
                             {
-                                State = BotState.WaitingAction;
+                                await DoScan(distance);
                             }
                             break;
                         case BotState.WaitingAction:
