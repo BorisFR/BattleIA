@@ -137,6 +137,7 @@ namespace BattleIA
                             }
                             // do a scan of size value and send answer
                             byte distance = buffer[1];
+                            System.Diagnostics.Debug.WriteLine($"Scan distance: {distance}");
                             if (distance > 0)
                             {
                                 if (distance < bot.Energy)
@@ -151,6 +152,9 @@ namespace BattleIA
                                     bot.Energy = 0;
                                     await SendChangeInfo();
                                 }
+                            } else
+                            {
+                                State = BotState.WaitingAction;
                             }
                             break;
                         case BotState.WaitingAction:
