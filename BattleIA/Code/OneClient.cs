@@ -94,7 +94,7 @@ namespace BattleIA
 
                         MainGame.RefreshViewer();
 
-                        await StartNewTurn();
+                        //await StartNewTurn();
                     }
                     else
                     {
@@ -305,6 +305,7 @@ namespace BattleIA
         public async Task StartNewTurn()
         {
             if (IsEnd) return;
+            if (State != BotState.Ready) return;
             if (turn > 0)
             {
                 if (bot.Energy > 0)

@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.WebSockets;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace BattleIA
@@ -21,7 +22,6 @@ namespace BattleIA
 
         public static void InitNewMap()
         {
-
             TheMap = new CaseState[MapWidth, MapHeight];
             for (int i = 0; i < MapWidth; i++)
             {
@@ -62,6 +62,44 @@ namespace BattleIA
                     ok = true;
                 }
             } while (!ok);
+        }
+
+        private static bool turnRunning = false;
+
+        public static async void DoTurns()
+        {
+            if (turnRunning) return;
+            turnRunning = true;
+            System.Diagnostics.Debug.WriteLine("Starting turns...");
+            while (turnRunning)
+            {
+                System.Diagnostics.Debug.WriteLine("One turns...");
+                OneClient[] bots = null;
+                int count = 0;
+                lock (lockList)
+                {
+                    count = AllBot.Count;
+                    if (count > 0)
+                    {
+                        bots = new OneClient[count];
+                        AllBot.CopyTo(bots);
+                    }
+                }
+                if (count == 0)
+                {
+                    System.Diagnostics.Debug.WriteLine("No bot!");
+                    //Thread.Sleep(500);
+                    turnRunning = false;
+                }
+                else
+                {
+                    for (int i = 0; i < bots.Length; i++)
+                    {
+                        await bots[i].StartNewTurn();
+                    }
+                }
+            }
+            System.Diagnostics.Debug.WriteLine("Finish turns...");
         }
 
         private static Object lockListViewer = new Object();
@@ -130,6 +168,10 @@ namespace BattleIA
             foreach (OneClient o in toRemove)
                 Remove(o.ClientGuid);
             System.Diagnostics.Debug.WriteLine($"#clients: {AllBot.Count}");
+
+            Thread t = new Thread(DoTurns);
+            t.Start();
+
             // on se met à l'écoute des messages de ce client
             await client.WaitReceive();
             // arrivé ici, c'est que le client s'est déconnecté
