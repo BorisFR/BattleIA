@@ -9,6 +9,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using System.Net.WebSockets;
 using System.Threading;
+using Microsoft.AspNetCore.Hosting.Server.Features;
 
 namespace BattleIAserver
 {
@@ -31,6 +32,10 @@ namespace BattleIAserver
                 app.UseDeveloperExceptionPage();
             }
 
+            /*var serverAddressesFeature = app.ServerFeatures.Get<IServerAddressesFeature>();
+            System.Diagnostics.Debug.WriteLine($"ADDR: {string.Join(", ", serverAddressesFeature.Addresses)}");
+            Console.WriteLine($"ADDR: {string.Join(", ", serverAddressesFeature.Addresses)}");*/
+
             // https://docs.microsoft.com/en-us/aspnet/core/fundamentals/websockets?view=aspnetcore-2.2
 
             // parametres pour réception des websocket
@@ -47,14 +52,18 @@ namespace BattleIAserver
 
             app.Use(async (context, next) =>
             {
+                //Console.WriteLine("Nouvelle connexion WS");
                 // ouverture d'une websocket, un nouveau client se connecte
                 if (context.Request.Path == "/ia")
                 {
+                    //Console.WriteLine("de type /ia");
                     if (context.WebSockets.IsWebSocketRequest)
                     {
+                        //Console.WriteLine("AcceptWebSocketAsync");
                         // on l'ajoute à notre jeu !
                         WebSocket webSocket = await context.WebSockets.AcceptWebSocketAsync();
                         //await Echo(context, webSocket);
+                        //Console.WriteLine("Launch AddClient");
                         await MainGame.AddClient(webSocket);
                     }
                     else
@@ -64,6 +73,7 @@ namespace BattleIAserver
                 }
                 else
                 {
+                    //Console.WriteLine("de type /display");
                     if (context.Request.Path == "/display")
                     {
                         if (context.WebSockets.IsWebSocketRequest)

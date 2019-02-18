@@ -37,6 +37,8 @@ namespace BattleIAserver
         /// <returns></returns>
         public async Task WaitReceive()
         {
+
+            //Console.WriteLine("First, listen for GUID");
             // 1 - on attend la première data du client
             // qui doit etre son GUID
 
@@ -49,6 +51,7 @@ namespace BattleIAserver
             catch (Exception err)
             {
                 System.Diagnostics.Debug.WriteLine($"[ERROR] {err.Message}");
+                //Console.WriteLine($"[ERROR] {err.Message}");
                 IsEnd = true;
                 State = BotState.Disconnect;
                 try

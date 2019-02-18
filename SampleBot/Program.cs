@@ -13,7 +13,7 @@ namespace SampleBot
         //private static string serverUrl = "wss://10.26.1.182:44367/ia";
         //private static string serverUrl = "wss://ly0500:44367/ia";
         //private static string serverUrl = "ws://ly0500:51973/ia";
-        private static string serverUrl = "ws://10.26.1.182:51973/ia";
+        private static string serverUrl = "ws://127.0.0.1:2626/ia";
 
         static void Main(string[] args)
         {

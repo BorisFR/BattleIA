@@ -74,7 +74,7 @@ namespace BattleIAserver
             System.Diagnostics.Debug.WriteLine("Starting turns...");
             while (turnRunning)
             {
-                System.Diagnostics.Debug.WriteLine("One turns...");
+                //System.Diagnostics.Debug.WriteLine("One turns...");
                 OneClient[] bots = null;
                 int count = 0;
                 lock (lockList)
@@ -155,6 +155,7 @@ namespace BattleIAserver
         {
             OneClient client = new OneClient(webSocket);
             List<OneClient> toRemove = new List<OneClient>();
+            //Console.WriteLine("un peu de ménage");
             lock (lockList)
             {
                 // au cas où, on en profite pour faire le ménage
@@ -166,10 +167,12 @@ namespace BattleIAserver
                 AllBot.Add(client);
             };
             // fin du ménage
+            //Console.WriteLine("Do it!");
             foreach (OneClient o in toRemove)
                 Remove(o.ClientGuid);
             System.Diagnostics.Debug.WriteLine($"#clients: {AllBot.Count}");
 
+            Console.WriteLine("Starting thread");
             Thread t = new Thread(DoTurns);
             t.Start();
 
