@@ -10,6 +10,8 @@ using Microsoft.Extensions.DependencyInjection;
 using System.Net.WebSockets;
 using System.Threading;
 using Microsoft.AspNetCore.Hosting.Server.Features;
+using Microsoft.Extensions.FileProviders;
+using System.IO;
 
 namespace BattleIAserver
 {
@@ -31,6 +33,10 @@ namespace BattleIAserver
             {
                 app.UseDeveloperExceptionPage();
             }
+
+            app.UseDefaultFiles();
+            app.UseStaticFiles();
+            app.UseStaticFiles(new StaticFileOptions { FileProvider = new PhysicalFileProvider(Path.Combine(Directory.GetCurrentDirectory(), "WebPages")), RequestPath = "/WebPages" });
 
             /*var serverAddressesFeature = app.ServerFeatures.Get<IServerAddressesFeature>();
             System.Diagnostics.Debug.WriteLine($"ADDR: {string.Join(", ", serverAddressesFeature.Addresses)}");
