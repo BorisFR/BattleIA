@@ -177,13 +177,14 @@ namespace BattleIAserver
             }
         }
 
-        public async Task SendPlayerShield(byte x1, byte y1, byte s)
+        public async Task SendPlayerShield(byte x1, byte y1, byte s1, byte s2)
         {
-            var buffer = new byte[4];
+            var buffer = new byte[5];
             buffer[0] = System.Text.Encoding.ASCII.GetBytes("S")[0];
             buffer[1] = x1;
             buffer[2] = y1;
-            buffer[3] = s;
+            buffer[3] = s1;
+            buffer[4] = s2;
             try
             {
                 System.Diagnostics.Debug.WriteLine("[VIEWER] Sending player shield");
@@ -196,13 +197,14 @@ namespace BattleIAserver
             }
         }
 
-        public async Task SendPlayerCloak(byte x1, byte y1, byte s)
+        public async Task SendPlayerCloak(byte x1, byte y1, byte s1, byte s2)
         {
-            var buffer = new byte[4];
+            var buffer = new byte[5];
             buffer[0] = System.Text.Encoding.ASCII.GetBytes("H")[0];
             buffer[1] = x1;
             buffer[2] = y1;
-            buffer[3] = s;
+            buffer[3] = s1;
+            buffer[4] = s2;
             try
             {
                 System.Diagnostics.Debug.WriteLine("[VIEWER] Sending player cloak");

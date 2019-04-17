@@ -172,6 +172,7 @@ namespace BattleIAserver
                             {
                                 case BotAction.None: // None
                                     State = BotState.Ready;
+                                    Console.WriteLine($"Bot {bot.Name} do nothing");
                                     await SendMessage("OK");
                                     break;
                                 case BotAction.Move: // move
@@ -184,6 +185,7 @@ namespace BattleIAserver
                                         return;
                                     }
                                     byte direction = buffer[1];
+                                    Console.WriteLine($"Bot {bot.Name} moving direction {direction}");
                                     await DoMove((MoveDirection)direction);
                                     State = BotState.Ready;
                                     await SendMessage("OK");
@@ -198,10 +200,13 @@ namespace BattleIAserver
                                         return;
                                     }
                                     UInt16 shieldLevel = (UInt16)(buffer[1] + (buffer[2] << 8));
+                                    Console.WriteLine($"Bot {bot.Name} activate shield level {shieldLevel}");
                                     bot.Energy += bot.ShieldLevel;
                                     bot.ShieldLevel = shieldLevel;
+                                    MainGame.ViewerPlayerShield(bot.X, bot.Y, (byte)bot.ShieldLevel);
                                     if (shieldLevel > bot.Energy)
                                     {
+                                        bot.ShieldLevel = 0;
                                         bot.Energy = 0;
                                         await SendChangeInfo();
                                         await SendDead();
@@ -221,10 +226,13 @@ namespace BattleIAserver
                                         return;
                                     }
                                     UInt16 cloakLevel = (UInt16)(buffer[1] + (buffer[2] << 8));
+                                    Console.WriteLine($"Bot {bot.Name} activate cloak level {cloakLevel}");
                                     bot.Energy += bot.CloakLevel;
                                     bot.CloakLevel = cloakLevel;
+                                    MainGame.ViewerPlayerCloak(bot.X, bot.Y, (byte)bot.CloakLevel);
                                     if (cloakLevel > bot.Energy)
                                     {
+                                        bot.CloakLevel = 0;
                                         bot.Energy = 0;
                                         await SendChangeInfo();
                                         await SendDead();
@@ -236,6 +244,7 @@ namespace BattleIAserver
                                     break;
                                 case BotAction.Fire:
                                     // TODO: effectuer le tir :)
+                                    Console.WriteLine($"Bot {bot.Name} shoot");
                                     bot.Energy--;
                                     if (bot.Energy == 0)
                                     {
@@ -468,6 +477,26 @@ namespace BattleIAserver
 
         }
 
+        public async Task IsHit()
+        {
+            Console.WriteLine($"Bot {bot.Name} a été tamponné");
+            if (bot.ShieldLevel > 0)
+            {
+                bot.ShieldLevel--;
+                MainGame.ViewerPlayerShield(bot.X, bot.Y, bot.ShieldLevel);
+            }
+            else
+            {
+                if (bot.Energy > 0)
+                    bot.Energy--;
+            }
+            await SendChangeInfo();
+            if (bot.Energy == 0)
+            {
+                await SendDead();
+            }
+        }
+
         public async Task DoMove(MoveDirection direction)
         {
             bot.Energy--;
@@ -475,6 +504,7 @@ namespace BattleIAserver
             int y = 0;
             switch (direction)
             {// TODO: check if it is ok for east/west. Ok for north/south
+                // pour l'instant, on se déplace haut/bas/gauche/droite, pas de diagonale
                 case MoveDirection.North: y = 1; break;
                 case MoveDirection.South: y = -1; break;
                 case MoveDirection.East: x = -1; break;
@@ -500,22 +530,31 @@ namespace BattleIAserver
                     bot.X = (byte)(bot.X + x);
                     bot.Y = (byte)(bot.Y + y);
                     MainGame.TheMap[bot.X, bot.Y] = CaseState.Ennemy;
-                    bot.Energy += (UInt16)(MainGame.RND.Next(50) + 1);
+                    UInt16 temp = (UInt16)(MainGame.RND.Next(50) + 1);
+                    bot.Energy += temp;
+                    Console.WriteLine($"Bot {bot.Name} capture {temp} energy");
                     //MainGame.RefreshViewer();
                     break;
-                case CaseState.Ennemy:
+                case CaseState.Ennemy: // on tamponne un bot adverse
                     if (bot.ShieldLevel > 0)
+                    {
                         bot.ShieldLevel--;
+                        MainGame.ViewerPlayerShield(bot.X, bot.Y, bot.ShieldLevel);
+                    }
                     else
                     {
                         if (bot.Energy > 0)
                             bot.Energy--;
                     }
-                    // TODO: faire idem à l'ennemi !
+                    Console.WriteLine($"Bot {bot.Name} tamponne un bot ennemi !");
+                    TouchEnemy((UInt16)(bot.X + x), (UInt16)(bot.Y + y));
                     break;
                 case CaseState.Wall:
                     if (bot.ShieldLevel > 0)
+                    {
                         bot.ShieldLevel--;
+                        MainGame.ViewerPlayerShield(bot.X, bot.Y, bot.ShieldLevel);
+                    }
                     else
                     {
                         if (bot.Energy > 0)
@@ -527,6 +566,18 @@ namespace BattleIAserver
             if (bot.Energy == 0)
             {
                 await SendDead();
+            }
+        } // DoMove
+
+        private async void TouchEnemy(UInt16 x, UInt16 y)
+        {
+            foreach(OneClient client in MainGame.AllBot)
+            {
+                if(client.bot.X == x && client.bot.Y == y)
+                {
+                    await client.IsHit();
+                    return;
+                }
             }
         }
     }

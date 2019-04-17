@@ -47,12 +47,12 @@ namespace BattleIA
     public enum MoveDirection : byte
     {
         North = 1,
-        NorthWest = 2,
-        West = 3,
-        SouthWest = 4,
-        South = 5,
-        SouthEast = 6,
-        East = 7,
+        West = 2,
+        South = 3,
+        East = 4,
+        NorthWest = 5,
+        SouthWest = 6,
+        SouthEast = 7,
         NorthEast = 8,
     }
 

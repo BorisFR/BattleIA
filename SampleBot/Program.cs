@@ -90,7 +90,7 @@ namespace SampleBot
                                 bot.Energy = (UInt16)(buffer[3] + (buffer[4] << 8));
                                 bot.ShieldLevel = (UInt16)(buffer[5] + (buffer[6] << 8));
                                 bot.CloakLevel = (UInt16)(buffer[7] + (buffer[8] << 8));
-                                Console.WriteLine($"Turn #{turn} - Energy: {bot.Energy}, Shield: {bot.ShieldLevel}, Cloack: {bot.CloakLevel}");
+                                Console.WriteLine($"Turn #{turn} - Energy: {bot.Energy}, Shield: {bot.ShieldLevel}, Cloak: {bot.CloakLevel}");
                                 ia.StatusReport(turn, bot.Energy, bot.ShieldLevel, false);
                                 if (bot.Energy == 0) break;
                                 // must answer with D#
@@ -105,7 +105,7 @@ namespace SampleBot
                                 bot.Energy = (UInt16)(buffer[1] + (buffer[2] << 8));
                                 bot.ShieldLevel = (UInt16)(buffer[3] + (buffer[4] << 8));
                                 bot.CloakLevel = (UInt16)(buffer[5] + (buffer[6] << 8));
-                                Console.WriteLine($"Change - Energy: {bot.Energy}, Shield: {bot.ShieldLevel}, Cloack: {bot.CloakLevel}");
+                                Console.WriteLine($"Change - Energy: {bot.Energy}, Shield: {bot.ShieldLevel}, Cloak: {bot.CloakLevel}");
                                 ia.StatusReport(turn, bot.Energy, bot.ShieldLevel, false);
                                 // nothing to reply
                                 if (bot.Energy == 0) break;

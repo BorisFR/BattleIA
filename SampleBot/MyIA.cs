@@ -24,8 +24,8 @@ namespace SampleBot
         /// <param name="turn">Turn.</param>
         /// <param name="energy">Energy.</param>
         /// <param name="shieldLevel">Shield level.</param>
-        /// <param name="isCloacked">If set to <c>true</c> is cloacked.</param>
-        public void StatusReport(UInt16 turn, UInt16 energy, UInt16 shieldLevel, bool isCloacked)
+        /// <param name="isCloaked">If set to <c>true</c> is cloacked.</param>
+        public void StatusReport(UInt16 turn, UInt16 energy, UInt16 shieldLevel, bool isCloaked)
         {
             // si le niveau de notre bouclier a baissé, c'est que l'on a reçu un coup
             if (currentShieldLevel != shieldLevel)
@@ -83,31 +83,38 @@ namespace SampleBot
                 if (currentShieldLevel == 0)
                 {
                     // on en réactive 1 de suite !
-                    ret = new byte[2];
+                    currentShieldLevel = (byte)rnd.Next(1, 9);
+                    ret = new byte[3];
                     ret[0] = (byte)BotAction.ShieldLevel;
-                    ret[1] = 10;
+                    ret[1] = (byte)(currentShieldLevel & 0xFF);
+                    ret[2] = (byte)(currentShieldLevel >> 8);
+                    return ret;
                 }
-                // on se déplace fissa, au hazard
-                ret = new byte[2];
-                ret[0] = (byte)BotAction.Move;
-                ret[1] = (byte)rnd.Next(1, 9);
 
                 hasBeenHit = false;
+                // puis on se déplace fissa, au hazard
+                ret = new byte[2];
+                ret[0] = (byte)BotAction.Move;
+                ret[1] = (byte)rnd.Next(1, 5);
+                return ret;
             }
 
             // si pas de bouclier, on en met un en route
             if (currentShieldLevel == 0)
             {
                 // on en réactive 1 de suite !
-                ret = new byte[2];
+                currentShieldLevel = 1;
+                ret = new byte[3];
                 ret[0] = (byte)BotAction.ShieldLevel;
-                ret[1] = 10;
+                ret[1] = (byte)(currentShieldLevel & 0xFF);
+                ret[2] = (byte)(currentShieldLevel >> 8);
+                return ret;
             }
 
             // on se déplace au hazard
             ret = new byte[2];
             ret[0] = (byte)BotAction.Move;
-            ret[1] = (byte)rnd.Next(1, 9);
+            ret[1] = (byte)rnd.Next(1, 5);
 
             //var ret = new byte[1];
             //ret[0] = (byte)BotAction.None;

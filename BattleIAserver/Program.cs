@@ -72,22 +72,22 @@ namespace BattleIAserver
                         Console.WriteLine("Stop");
                         MainGame.StopSimulator();
                         break;
-                    case "x":
+                    case "x": // debug stuff to view shield
                         foreach (OneClient x in MainGame.AllBot)
                         {
                             x.bot.ShieldLevel++;
                             if (x.bot.ShieldLevel > 10)
                                 x.bot.ShieldLevel = 0;
-                            MainGame.ViewerPlayerShield(x.bot.X, x.bot.Y, (byte)x.bot.ShieldLevel);
+                            MainGame.ViewerPlayerShield(x.bot.X, x.bot.Y, x.bot.ShieldLevel);
                         }
                         break;
-                    case "w":
+                    case "w": // debug stuff to view cloak
                         foreach (OneClient x in MainGame.AllBot)
                         {
                             x.bot.CloakLevel++;
                             if (x.bot.CloakLevel > 10)
                                 x.bot.CloakLevel = 0;
-                            MainGame.ViewerPlayerCloak(x.bot.X, x.bot.Y, (byte)x.bot.CloakLevel);
+                            MainGame.ViewerPlayerCloak(x.bot.X, x.bot.Y, x.bot.CloakLevel);
                         }
                         break;
                 }

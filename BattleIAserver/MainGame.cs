@@ -12,7 +12,7 @@ namespace BattleIAserver
     {
         public static UInt16 MapWidth = 32;
         public static UInt16 MapHeight = 22;
-        public static ushort StartEnergy = 100;
+        public static UInt16 StartEnergy = 100;
 
         private static UInt16 percentWall = 3;
         private static UInt16 percentEnergy = 5;
@@ -361,24 +361,34 @@ namespace BattleIAserver
             }
         }
 
-        public static void ViewerPlayerShield(byte x1, byte y1, byte s)
+        public static void ViewerPlayerShield(byte x1, byte y1, UInt16 s)
+        {
+            ViewerPlayerShield(x1, y1, (byte)(s & 0xFF), (byte)(s >> 8));
+        }
+
+        public static void ViewerPlayerShield(byte x1, byte y1, byte s1, byte s2)
         {
             lock (lockListViewer)
             {
                 foreach (OneViewer o in AllViewer)
                 {
-                    o.SendPlayerShield(x1, y1, s);
+                    o.SendPlayerShield(x1, y1, s1, s2);
                 }
             }
         }
 
-        public static void ViewerPlayerCloak(byte x1, byte y1, byte s)
+        public static void ViewerPlayerCloak(byte x1, byte y1, UInt16 s)
+        {
+            ViewerPlayerCloak(x1, y1, (byte)(s & 0xFF), (byte)(s >> 8));
+        }
+
+        public static void ViewerPlayerCloak(byte x1, byte y1, byte s1, byte s2)
         {
             lock (lockListViewer)
             {
                 foreach (OneViewer o in AllViewer)
                 {
-                    o.SendPlayerCloak(x1, y1, s);
+                    o.SendPlayerCloak(x1, y1, s1, s2);
                 }
             }
         }
