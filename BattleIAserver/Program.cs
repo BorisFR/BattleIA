@@ -19,7 +19,7 @@ namespace BattleIAserver
             //var pathToExe = Process.GetCurrentProcess().MainModule.FileName;
             var currentDir = Directory.GetCurrentDirectory();
             var pathToContentRoot = Path.Combine(currentDir, "WebPages");
-            Console.WriteLine($"ContentRoot: {pathToContentRoot}");
+            //Console.WriteLine($"ContentRoot: {pathToContentRoot}");
 
             //var kso = new KestrelServerOptions();
             //kso.ListenLocalhost(2626);
@@ -36,13 +36,72 @@ namespace BattleIAserver
 
             //Console.SetOut(ConsOut);          //Restore output
 
-            //Regular console code
-            Console.WriteLine("Press [ENTER] to exit.");
-            //while (true)
+            ShowHelp();
+            bool exit = false;
+            while (!exit)
             {
-                Console.WriteLine(Console.ReadLine());
+                Console.Write(">");
+                var key = Console.ReadKey(true);
+                //string command = Console.ReadLine().Trim().ToLower();
+                switch (key.KeyChar.ToString().ToLower())
+                {
+                    case "h":
+                        ShowHelp();
+                        break;
+                    case "q":
+                        Console.WriteLine("Quit");
+                        if (MainGame.AllBot.Count>0)
+                        {
+                            Console.WriteLine("Impossible car il y a au moins 1 BOT de connecté.");
+                        } else
+                        {
+                            if(MainGame.AllViewer.Count > 0)
+                            {
+                                Console.WriteLine("Impossible car il y a au moins 1 VIEWER de connecté.");
+                            } else
+                            {
+                                exit = true;
+                            }
+                        }
+                        break;
+                    case "g":
+                        Console.WriteLine("GO!");
+                        MainGame.RunSimulator();
+                        break;
+                    case "s":
+                        Console.WriteLine("Stop");
+                        MainGame.StopSimulator();
+                        break;
+                    case "x":
+                        foreach (OneClient x in MainGame.AllBot)
+                        {
+                            x.bot.ShieldLevel++;
+                            if (x.bot.ShieldLevel > 10)
+                                x.bot.ShieldLevel = 0;
+                            MainGame.ViewerPlayerShield(x.bot.X, x.bot.Y, (byte)x.bot.ShieldLevel);
+                        }
+                        break;
+                    case "w":
+                        foreach (OneClient x in MainGame.AllBot)
+                        {
+                            x.bot.CloakLevel++;
+                            if (x.bot.CloakLevel > 10)
+                                x.bot.CloakLevel = 0;
+                            MainGame.ViewerPlayerCloak(x.bot.X, x.bot.Y, (byte)x.bot.CloakLevel);
+                        }
+                        break;
+                }
             }
             host.StopAsync();
+        }
+
+        public static void ShowHelp()
+        {
+            Console.WriteLine("Help");
+            Console.WriteLine("h\t Affiche cette liste de commandes");
+            Console.WriteLine("q\t Terminer le programme");
+            Console.WriteLine("g\t Exécute la simulation");
+            Console.WriteLine("s\t Arrêt de la simulation");
         }
     }
 }

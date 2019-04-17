@@ -11,7 +11,7 @@ namespace BattleIA
         // variables data
         public UInt16 Energy;
         public UInt16 ShieldLevel;
-        public UInt16 CloackLevel;
+        public UInt16 CloakLevel;
 
         // dynamics data
         public DateTime StartTime;

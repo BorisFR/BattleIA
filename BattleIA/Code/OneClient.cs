@@ -202,7 +202,7 @@ namespace BattleIA
                                     State = BotState.Ready;
                                     await SendMessage("OK");
                                     break;
-                                case BotAction.CloackLevel: // cloack
+                                case BotAction.CloakLevel: // cloack
                                     if (result.Count < 3)
                                     {
                                         MainGame.TheMap[bot.X, bot.Y] = CaseState.Empty;
@@ -212,8 +212,8 @@ namespace BattleIA
                                         return;
                                     }
                                     UInt16 cloackLevel = (UInt16)(buffer[1] + (buffer[2] << 8));
-                                    bot.Energy += bot.CloackLevel;
-                                    bot.CloackLevel = cloackLevel;
+                                    bot.Energy += bot.CloakLevel;
+                                    bot.CloakLevel = cloackLevel;
                                     if (cloackLevel > bot.Energy)
                                     {
                                         bot.Energy = 0;
@@ -318,7 +318,7 @@ namespace BattleIA
                 if (bot.ShieldLevel > 0)
                     if (bot.Energy > 0)
                         bot.Energy--;
-                if (bot.CloackLevel > 0)
+                if (bot.CloakLevel > 0)
                     if (bot.Energy > 0)
                         bot.Energy--;
             }
@@ -335,8 +335,8 @@ namespace BattleIA
             buffer[4] = (byte)(bot.Energy >> 8);
             buffer[5] = (byte)bot.ShieldLevel;
             buffer[6] = (byte)(bot.ShieldLevel >> 8);
-            buffer[7] = (byte)bot.CloackLevel;
-            buffer[8] = (byte)(bot.CloackLevel >> 8);
+            buffer[7] = (byte)bot.CloakLevel;
+            buffer[8] = (byte)(bot.CloakLevel >> 8);
             try
             {
                 State = BotState.WaitingAnswerD;
@@ -361,8 +361,8 @@ namespace BattleIA
             buffer[2] = (byte)(bot.Energy >> 8);
             buffer[3] = (byte)bot.ShieldLevel;
             buffer[4] = (byte)(bot.ShieldLevel >> 8);
-            buffer[5] = (byte)bot.CloackLevel;
-            buffer[6] = (byte)(bot.CloackLevel >> 8);
+            buffer[5] = (byte)bot.CloakLevel;
+            buffer[6] = (byte)(bot.CloakLevel >> 8);
             try
             {
                 System.Diagnostics.Debug.WriteLine($"Sending 'C' to {bot.GUID}");

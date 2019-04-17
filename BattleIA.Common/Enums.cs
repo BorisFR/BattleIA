@@ -15,6 +15,7 @@ namespace BattleIA
         Disconnect = 5,
         WaitingAnswerD = 6,
         WaitingAction = 7,
+        IsDead = 8,
     }
 
     public enum CaseState : byte
@@ -31,12 +32,13 @@ namespace BattleIA
         None = 0,
         Move = 1,
         ShieldLevel = 2,
-        CloackLevel = 3,
+        CloakLevel = 3,
         Fire = 4,
     }
 
     public enum MessageSize : byte
     {
+        Dead = 1,
         OK = 2,
         Turn = 9,
         Change = 7,

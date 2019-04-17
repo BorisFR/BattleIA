@@ -1,23 +1,55 @@
-/!\ ce qui ne va pas :
-la base d'authentification est du SQL Server
+* Le moteur de simulation
+-------------------------
+Projet : BattleIAserver
+C'est un projet de type console
+démarre avec la ligne de commande : dotnet BattleIAserver.dll
+La partie site web n'est pas utilisée.
+Il ouvre une connectique réseau en websocket sur le port 2626
+ws://*:2626/ia			=> pour accueillir les BOTs
+ws://*:2626/console		=> pour le rendu html/css des BOTs
+ws://*:2626/display		=> pour le rendu graphique (fait avec Unity 3D)
+
+* BOT exemple
+-------------
+Projet : SampleBot
+C'est un projet de type console
+
+ws://127.0.0.1:2626/ia
+
+* BattleIA.Common
+-----------------
+Objets partagés entre les projets
+
+
+* BattleIA
+----------
+N'est plus utilisé. C'était un projet web, remplacé par le moteur de simulation BattleIAserver.
+/!\ ce qui ne va pas : la base d'authentification est du SQL Server
+
 
 
 Unity 2018.3.5f1 personal
 .NET Core 2.2 SDK
 
+
 * implémentations des websockets pour le serveur
 
-partie pris : à la moindre anicroche, déconnection pure et simple du client
+partie pris : à la moindre anicroche, déconnection pure et simple du client !
 
 1/ dans startup.cs
 déclaration des websockets pour asp.net
-chaque nouvel connection envoi vers MainGame.AddClient()
+- chaque nouvelle connection de BOT envoi vers MainGame.AddClient()
 on y maintient une List des clients connectés
 /!\ on fonctionne en thread : donc on lock pour travailler sur la liste ;)
+- chaque nouvelle connection de RENDU envoi vers MainGame.AddViewer()
+on y maintient une List des viewers connectés
+/!\ on fonctionne en thread : donc on lock pour travailler sur la liste ;)
+- TODO: idem pour rendu HTML/CSS
 
 * protocole
 1/ le premier envoi contient le GUID du BOT
-le serveur renvoi OK si le GUID est présent et connu en base
+le serveur renvoi OK si le GUID est présent et connu en base (pas de base...)
+1bis/ le bot envoi son nom : Nname
 le bot attend alors son tour
 
 2/ réception de T##eesscc
@@ -32,7 +64,7 @@ Le serveur nous envoi le niveau de nos différents éléments
 pour obtenir la valeur en 16 bit non signé, on fera le calcul suivant
 (second octet << 8) + (premier octet)
 
-La réponse a apportée est le niveau de détection que nous voulons effectuer
+La réponse a apporter est le niveau de détection que nous voulons effectuer
 Nous envoyons le message D#
 avec # pour valeur de 0 à 255
 0 : aucune détection
@@ -51,7 +83,7 @@ signification de chacune des valeurs
 3 : énergie à récupérer (valeur inconnue)
 4 : ennemi
 
-La réponse a apportée, est l'action que nous voulons effectuer
+La réponse a apporter est l'action que nous voulons effectuer
 Si aucune action, envoyer N
 Si déplacement, envoyer M# avec #=direction de 1 à 8 (voir enum)
 Si protection, envoyer S#
@@ -63,5 +95,8 @@ Un changement vient d'avoir lieu, voici les nouvelles valeurs
 ee : niveau d'energie
 ss : niveau du shield / bouclier
 cc : niveau de cloack / invisibilité
+
+5/ réception de D
+Le BOT est mort
 
 {50A38383-9A61-42FA-92F2-97CE3ADC426D}

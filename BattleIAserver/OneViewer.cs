@@ -33,7 +33,7 @@ namespace BattleIAserver
             catch (Exception err)
             {
                 MustRemove = true;
-                System.Diagnostics.Debug.WriteLine($"[VIEWER ERROR] {err.Message}");
+                Console.WriteLine($"[VIEWER ERROR] {err.Message}");
                 try
                 {
                     await webSocket.CloseAsync(WebSocketCloseStatus.ProtocolError, "[VIEWER] Error waiting data", CancellationToken.None);
@@ -52,6 +52,12 @@ namespace BattleIAserver
 
                 string command = System.Text.Encoding.UTF8.GetString(buffer, 0, 1);
                 System.Diagnostics.Debug.WriteLine($"[VIEWER] Received command '{command}'");
+                if (command == "Q")
+                {
+                    MustRemove = true;
+                    await webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, $"[VIEWER CLOSING] receive {command}", CancellationToken.None);
+                    return;
+                }
                 if (command != "M")
                 {
                     MustRemove = true;
@@ -126,6 +132,80 @@ namespace BattleIAserver
             try
             {
                 System.Diagnostics.Debug.WriteLine("[VIEWER] Sending move player");
+                await webSocket.SendAsync(new ArraySegment<byte>(buffer, 0, buffer.Length), WebSocketMessageType.Text, true, CancellationToken.None);
+            }
+            catch (Exception err)
+            {
+                System.Diagnostics.Debug.WriteLine($"[VIEWER ERROR] {err.Message}");
+                MustRemove = true;
+            }
+        }
+
+        public async Task SendClearCase(byte x1, byte y1)
+        {
+            var buffer = new byte[3];
+            buffer[0] = System.Text.Encoding.ASCII.GetBytes("C")[0];
+            buffer[1] = x1;
+            buffer[2] = y1;
+            try
+            {
+                System.Diagnostics.Debug.WriteLine("[VIEWER] Sending clear case");
+                await webSocket.SendAsync(new ArraySegment<byte>(buffer, 0, buffer.Length), WebSocketMessageType.Text, true, CancellationToken.None);
+            }
+            catch (Exception err)
+            {
+                System.Diagnostics.Debug.WriteLine($"[VIEWER ERROR] {err.Message}");
+                MustRemove = true;
+            }
+        }
+
+        public async Task SendAddEnergy(byte x1, byte y1)
+        {
+            var buffer = new byte[3];
+            buffer[0] = System.Text.Encoding.ASCII.GetBytes("E")[0];
+            buffer[1] = x1;
+            buffer[2] = y1;
+            try
+            {
+                System.Diagnostics.Debug.WriteLine("[VIEWER] Sending add energy");
+                await webSocket.SendAsync(new ArraySegment<byte>(buffer, 0, buffer.Length), WebSocketMessageType.Text, true, CancellationToken.None);
+            }
+            catch (Exception err)
+            {
+                System.Diagnostics.Debug.WriteLine($"[VIEWER ERROR] {err.Message}");
+                MustRemove = true;
+            }
+        }
+
+        public async Task SendPlayerShield(byte x1, byte y1, byte s)
+        {
+            var buffer = new byte[4];
+            buffer[0] = System.Text.Encoding.ASCII.GetBytes("S")[0];
+            buffer[1] = x1;
+            buffer[2] = y1;
+            buffer[3] = s;
+            try
+            {
+                System.Diagnostics.Debug.WriteLine("[VIEWER] Sending player shield");
+                await webSocket.SendAsync(new ArraySegment<byte>(buffer, 0, buffer.Length), WebSocketMessageType.Text, true, CancellationToken.None);
+            }
+            catch (Exception err)
+            {
+                System.Diagnostics.Debug.WriteLine($"[VIEWER ERROR] {err.Message}");
+                MustRemove = true;
+            }
+        }
+
+        public async Task SendPlayerCloak(byte x1, byte y1, byte s)
+        {
+            var buffer = new byte[4];
+            buffer[0] = System.Text.Encoding.ASCII.GetBytes("H")[0];
+            buffer[1] = x1;
+            buffer[2] = y1;
+            buffer[3] = s;
+            try
+            {
+                System.Diagnostics.Debug.WriteLine("[VIEWER] Sending player cloak");
                 await webSocket.SendAsync(new ArraySegment<byte>(buffer, 0, buffer.Length), WebSocketMessageType.Text, true, CancellationToken.None);
             }
             catch (Exception err)

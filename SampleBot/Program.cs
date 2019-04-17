@@ -14,6 +14,7 @@ namespace SampleBot
         //private static string serverUrl = "wss://ly0500:44367/ia";
         //private static string serverUrl = "ws://ly0500:51973/ia";
         private static string serverUrl = "ws://127.0.0.1:2626/ia";
+        private static string botName = "RandomBOT";
 
         static void Main(string[] args)
         {
@@ -46,7 +47,7 @@ namespace SampleBot
                 return;
             }
 
-            // 2 - Hello message with or GUID
+            // 2 - Hello message with our GUID
 
             Guid guid = Guid.NewGuid();
             var bytes = Encoding.UTF8.GetBytes(guid.ToString());
@@ -55,20 +56,32 @@ namespace SampleBot
 
             // 3 - wait data from server
 
+            bool nameIsSent = false;
+            bool isDead = false;
+
             var buffer = new byte[1024 * 4];
-            while (true)
+            while (!isDead)
             {
                 var result = await client.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None);
 
                 if (result.MessageType == WebSocketMessageType.Text)
                 {
-                    if (result.Count > 1)
+                    if (result.Count > 0)
                     {
                         string command = System.Text.Encoding.UTF8.GetString(buffer, 0, 1);
                         switch (command)
                         {
                             case "O": // OK, rien à faire
                                 if (result.Count != (int)MessageSize.OK) { Console.WriteLine($"[ERROR] wrong size for 'OK': {result.Count}"); break; }
+                                if(!nameIsSent)
+                                {
+                                    nameIsSent = true;
+                                    // sending our name
+                                    var bName = Encoding.UTF8.GetBytes("N" + botName);
+                                    Console.WriteLine($"Sending our name: {botName}");
+                                    await client.SendAsync(new ArraySegment<byte>(bName), WebSocketMessageType.Text, true, CancellationToken.None);
+                                    break;
+                                }
                                 Console.WriteLine("OK, waiting our turn...");
                                 break;
                             case "T": // nouveau tour, attend le niveau de détection désiré
@@ -76,8 +89,8 @@ namespace SampleBot
                                 turn = (UInt16)(buffer[1] + (buffer[2] << 8));
                                 bot.Energy = (UInt16)(buffer[3] + (buffer[4] << 8));
                                 bot.ShieldLevel = (UInt16)(buffer[5] + (buffer[6] << 8));
-                                bot.CloackLevel = (UInt16)(buffer[7] + (buffer[8] << 8));
-                                Console.WriteLine($"Turn #{turn} - Energy: {bot.Energy}, Shield: {bot.ShieldLevel}, Cloack: {bot.CloackLevel}");
+                                bot.CloakLevel = (UInt16)(buffer[7] + (buffer[8] << 8));
+                                Console.WriteLine($"Turn #{turn} - Energy: {bot.Energy}, Shield: {bot.ShieldLevel}, Cloack: {bot.CloakLevel}");
                                 ia.StatusReport(turn, bot.Energy, bot.ShieldLevel, false);
                                 if (bot.Energy == 0) break;
                                 // must answer with D#
@@ -91,8 +104,8 @@ namespace SampleBot
                                 if (result.Count != (int)MessageSize.Change) { Console.WriteLine($"[ERROR] wrong size for 'C': {result.Count}"); DebugWriteArray(buffer, result.Count); break; }
                                 bot.Energy = (UInt16)(buffer[1] + (buffer[2] << 8));
                                 bot.ShieldLevel = (UInt16)(buffer[3] + (buffer[4] << 8));
-                                bot.CloackLevel = (UInt16)(buffer[5] + (buffer[6] << 8));
-                                Console.WriteLine($"Change - Energy: {bot.Energy}, Shield: {bot.ShieldLevel}, Cloack: {bot.CloackLevel}");
+                                bot.CloakLevel = (UInt16)(buffer[5] + (buffer[6] << 8));
+                                Console.WriteLine($"Change - Energy: {bot.Energy}, Shield: {bot.ShieldLevel}, Cloack: {bot.CloakLevel}");
                                 ia.StatusReport(turn, bot.Energy, bot.ShieldLevel, false);
                                 // nothing to reply
                                 if (bot.Energy == 0) break;
@@ -108,6 +121,11 @@ namespace SampleBot
                                 var answerA = ia.GetAction(); // (byte)BotAction.None; // System.Text.Encoding.ASCII.GetBytes("N")[0];
                                 Console.WriteLine($"Sending Action: {(BotAction)answerA[0]}");
                                 await client.SendAsync(new ArraySegment<byte>(answerA), WebSocketMessageType.Text, true, CancellationToken.None);
+                                break;
+                            case "D":
+                                isDead = true;
+                                Console.WriteLine($"We are dead!");
+                                await client.CloseOutputAsync(WebSocketCloseStatus.NormalClosure, "", CancellationToken.None);
                                 break;
                         }
                     } // if count > 1

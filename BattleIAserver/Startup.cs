@@ -56,46 +56,74 @@ namespace BattleIAserver
 
             app.UseWebSockets(webSocketOptions);
 
+            // ICI on foonctionne en THREAD !
             app.Use(async (context, next) =>
             {
-                //Console.WriteLine("Nouvelle connexion WS");
+                Console.WriteLine("Nouvelle connexion WS");
                 // ouverture d'une websocket, un nouveau client se connecte
                 if (context.Request.Path == "/ia")
                 {
-                    //Console.WriteLine("de type /ia");
+                    Console.WriteLine("WS de type /ia");
                     if (context.WebSockets.IsWebSocketRequest)
                     {
                         //Console.WriteLine("AcceptWebSocketAsync");
-                        // on l'ajoute à notre jeu !
+                        // on l'ajoute à notre simulation !
                         WebSocket webSocket = await context.WebSockets.AcceptWebSocketAsync();
                         //await Echo(context, webSocket);
-                        //Console.WriteLine("Launch AddClient");
+                        Console.WriteLine("Nouveau BOT !");
+                        // Démarrage d'un nouveau client. Si on revient c'est qu'il est mort !
                         await MainGame.AddClient(webSocket);
+                        Console.WriteLine($"Il y a {MainGame.AllBot.Count} BOT");
                     }
                     else
                     {
                         context.Response.StatusCode = 400;
+                        Console.WriteLine("WS en erreur : Not a WebSocket establishment request.");
                     }
                 }
                 else
                 {
-                    //Console.WriteLine("de type /display");
                     if (context.Request.Path == "/display")
                     {
+                        Console.WriteLine("WS de type /display");
                         if (context.WebSockets.IsWebSocketRequest)
                         {
-                            // on l'ajoute à notre jeu !
+                            // on l'ajoute à notre simulation !
                             WebSocket webSocket = await context.WebSockets.AcceptWebSocketAsync();
+                            Console.WriteLine("Nouveau VIEWER !");
                             await MainGame.AddViewer(webSocket);
+                            Console.WriteLine($"Il y a {MainGame.AllViewer.Count} VIEWER");
                         }
                         else
                         {
                             context.Response.StatusCode = 400;
+                            Console.WriteLine("WS en erreur : Not a WebSocket establishment request.");
                         }
                     }
                     else
                     {
-                        await next();
+                        if (context.Request.Path == "/console")
+                        {
+                            Console.WriteLine("WS de type /console");
+                            if (context.WebSockets.IsWebSocketRequest)
+                            {
+                                // on l'ajoute à notre simulation !
+                                WebSocket webSocket = await context.WebSockets.AcceptWebSocketAsync();
+                                Console.WriteLine("Nouvelle CONSOLE !");
+                                //await MainGame.AddViewer(webSocket);
+                                //Console.WriteLine($"Il y a {MainGame.AllViewer.Count} BOT");
+                            }
+                            else
+                            {
+                                context.Response.StatusCode = 400;
+                                Console.WriteLine("WS en erreur : Not a WebSocket establishment request.");
+                            }
+                        }
+                        else
+                        {
+                            Console.WriteLine($"WS de type inconnu: {context.Request.Path}");
+                            await next();
+                        }
                     }
                 }
             });

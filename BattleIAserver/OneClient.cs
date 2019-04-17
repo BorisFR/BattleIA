@@ -50,7 +50,7 @@ namespace BattleIAserver
             }
             catch (Exception err)
             {
-                System.Diagnostics.Debug.WriteLine($"[ERROR] {err.Message}");
+                Console.WriteLine($"[ERROR] {err.Message}");
                 //Console.WriteLine($"[ERROR] {err.Message}");
                 IsEnd = true;
                 State = BotState.Disconnect;
@@ -75,7 +75,7 @@ namespace BattleIAserver
                         if (result.Count > 0)
                         {
                             var temp = System.Text.Encoding.UTF8.GetString(buffer, 0, result.Count);
-                            System.Diagnostics.Debug.WriteLine($"[ERROR GUID] {temp}");
+                            Console.WriteLine($"[ERROR GUID] {temp}");
                         }
                         await webSocket.CloseAsync(WebSocketCloseStatus.ProtocolError, "No GUID", CancellationToken.None);
                         return;
@@ -85,13 +85,13 @@ namespace BattleIAserver
                     if (Guid.TryParse(text, out bot.GUID))
                     {
                         // et qu'il soit ok !
-                        byte x, y;
-                        MainGame.SearchEmptyCase(out x, out y);
-                        MainGame.TheMap[x, y] = CaseState.Ennemy;
-                        bot.X = x;
-                        bot.Y = y;
-                        bot.Energy = 100;
-                        System.Diagnostics.Debug.WriteLine($"[NEW CLIENT] {bot.GUID} @ {x}/{y}");
+                        bot.Name = bot.GUID.ToString();
+                        MapXY xy = MainGame.SearchEmptyCase();
+                        MainGame.TheMap[xy.X, xy.Y] = CaseState.Ennemy;
+                        bot.X = xy.X;
+                        bot.Y = xy.Y;
+                        bot.Energy = MainGame.StartEnergy; ;
+                        Console.WriteLine($"[NEW BOT] {bot.GUID} @ {xy.X}/{xy.Y}");
 
                         State = BotState.Ready;
                         await SendMessage("OK");
@@ -102,7 +102,6 @@ namespace BattleIAserver
                     }
                     else
                     {
-                        MainGame.TheMap[bot.X, bot.Y] = CaseState.Empty;
                         IsEnd = true;
                         State = BotState.Disconnect;
                         await webSocket.CloseAsync(WebSocketCloseStatus.ProtocolError, $"[{text}] is not a GUID", CancellationToken.None);
@@ -119,9 +118,10 @@ namespace BattleIAserver
                         await webSocket.CloseAsync(WebSocketCloseStatus.ProtocolError, "Missing data in answer", CancellationToken.None);
                         return;
                     }
+                    // On reçoit une commande du BOT
                     switch (State)
                     {
-                        case BotState.WaitingAnswerD:
+                        case BotState.WaitingAnswerD: // le niveau de détection désiré pour ce tour
                             string command = System.Text.Encoding.UTF8.GetString(buffer, 0, 1);
                             if (command != "D")
                             {
@@ -131,6 +131,7 @@ namespace BattleIAserver
                                 await webSocket.CloseAsync(WebSocketCloseStatus.ProtocolError, $"[ERROR] Not the right answer, waiting D#, receive {command}", CancellationToken.None);
                                 return;
                             }
+                            // commande D sans niveau...
                             if (result.Count < 1)
                             {
                                 MainGame.TheMap[bot.X, bot.Y] = CaseState.Empty;
@@ -141,7 +142,7 @@ namespace BattleIAserver
                             }
                             // do a scan of size value and send answer
                             byte distance = buffer[1];
-                            System.Diagnostics.Debug.WriteLine($"Scan distance: {distance}");
+                            Console.WriteLine($"{bot.Name}: scan distance={distance}");
                             if (distance > 0)
                             {
                                 if (distance < bot.Energy)
@@ -152,18 +153,20 @@ namespace BattleIAserver
                                 }
                                 else
                                 {
-                                    // TODO: is dead :(
                                     bot.Energy = 0;
-                                    State = BotState.WaitingAction;
+                                    State = BotState.IsDead;
                                     await SendChangeInfo();
+                                    await SendDead();
                                 }
                             }
-                            else
+                            else 
                             {
+                                // ici cas simple du scan à 0, pas de conso d'énergie
                                 await DoScan(distance);
                             }
                             break;
-                        case BotState.WaitingAction:
+                        
+                        case BotState.WaitingAction: // l'action a effectuer
                             BotAction action = (BotAction)buffer[0];
                             switch (action)
                             {
@@ -200,14 +203,15 @@ namespace BattleIAserver
                                     if (shieldLevel > bot.Energy)
                                     {
                                         bot.Energy = 0;
-                                        // TODO: is dead :(
+                                        await SendChangeInfo();
+                                        await SendDead();
                                     }
                                     else
                                         bot.Energy -= shieldLevel;
                                     State = BotState.Ready;
                                     await SendMessage("OK");
                                     break;
-                                case BotAction.CloackLevel: // cloack
+                                case BotAction.CloakLevel: // cloak
                                     if (result.Count < 3)
                                     {
                                         MainGame.TheMap[bot.X, bot.Y] = CaseState.Empty;
@@ -216,16 +220,17 @@ namespace BattleIAserver
                                         await webSocket.CloseAsync(WebSocketCloseStatus.ProtocolError, "Missing data in answer 'C'", CancellationToken.None);
                                         return;
                                     }
-                                    UInt16 cloackLevel = (UInt16)(buffer[1] + (buffer[2] << 8));
-                                    bot.Energy += bot.CloackLevel;
-                                    bot.CloackLevel = cloackLevel;
-                                    if (cloackLevel > bot.Energy)
+                                    UInt16 cloakLevel = (UInt16)(buffer[1] + (buffer[2] << 8));
+                                    bot.Energy += bot.CloakLevel;
+                                    bot.CloakLevel = cloakLevel;
+                                    if (cloakLevel > bot.Energy)
                                     {
                                         bot.Energy = 0;
-                                        // TODO: is dead :(
+                                        await SendChangeInfo();
+                                        await SendDead();
                                     }
                                     else
-                                        bot.Energy -= cloackLevel;
+                                        bot.Energy -= cloakLevel;
                                     State = BotState.Ready;
                                     await SendMessage("OK");
                                     break;
@@ -234,13 +239,14 @@ namespace BattleIAserver
                                     bot.Energy--;
                                     if (bot.Energy == 0)
                                     {
-                                        // TODO: is dead :(
+                                        await SendChangeInfo();
+                                        await SendDead();
                                     }
                                     State = BotState.Ready;
                                     await SendMessage("OK");
                                     break;
                                 default:
-                                    System.Diagnostics.Debug.WriteLine($"[ERROR] lost with command {action} for state Action");
+                                    Console.WriteLine($"[ERROR] lost with command {action} for state Action");
                                     MainGame.TheMap[bot.X, bot.Y] = CaseState.Empty;
                                     IsEnd = true;
                                     State = BotState.Disconnect;
@@ -249,7 +255,17 @@ namespace BattleIAserver
                             }
                             break;
                         default:
-                            System.Diagnostics.Debug.WriteLine($"[ERROR] lost with state {State}");
+                            string cmd = System.Text.Encoding.UTF8.GetString(buffer, 0, 1);
+                            // on reçoit le nom du BOT
+                            if (cmd == "N" && result.Count > 1)
+                            {
+                                bot.Name = System.Text.Encoding.UTF8.GetString(buffer, 1, result.Count - 1);
+                                Console.WriteLine($"Le BOT {bot.GUID} se nomme {bot.Name}");
+                                State = BotState.Ready;
+                                await SendMessage("OK");
+                                break;
+                            }
+                            Console.WriteLine($"[ERROR] lost with state {State}");
                             MainGame.TheMap[bot.X, bot.Y] = CaseState.Empty;
                             IsEnd = true;
                             State = BotState.Disconnect;
@@ -274,7 +290,7 @@ namespace BattleIAserver
                 }
                 catch (Exception err)
                 {
-                    System.Diagnostics.Debug.WriteLine($"[ERROR] {err.Message}");
+                    Console.WriteLine($"[ERROR] {err.Message}");
                     if (MainGame.TheMap[bot.X, bot.Y] == CaseState.Ennemy)
                         MainGame.TheMap[bot.X, bot.Y] = CaseState.Empty;
                     IsEnd = true;
@@ -307,30 +323,38 @@ namespace BattleIAserver
             {
                 if (MainGame.TheMap[bot.X, bot.Y] == CaseState.Ennemy)
                     MainGame.TheMap[bot.X, bot.Y] = CaseState.Empty;
-                System.Diagnostics.Debug.WriteLine($"[ERROR] {err.Message}");
+                Console.WriteLine($"[ERROR] {err.Message}");
                 State = BotState.Error;
             }
         }
 
+        /// <summary>
+        /// Nouveau tour de simulation pour ce BOT
+        /// </summary>
+        /// <returns></returns>
         public async Task StartNewTurn()
         {
-            if (IsEnd) return;
-            if (State != BotState.Ready) return;
-            if (turn > 0)
+            if (IsEnd) return; // c'est déjà fini pour lui...
+            if (State != BotState.Ready) return; // pas normal...
+            if (turn > 0) // pas le premier tour, donc on applique la consommation d'énergie
             {
                 if (bot.Energy > 0)
                     bot.Energy--;
                 if (bot.ShieldLevel > 0)
                     if (bot.Energy > 0)
                         bot.Energy--;
-                if (bot.CloackLevel > 0)
+                if (bot.CloakLevel > 0)
                     if (bot.Energy > 0)
                         bot.Energy--;
             }
+            // reste-t-il de l'énergie ?
             if (bot.Energy == 0)
             {
-                // TODO: is dead :(
+                await SendChangeInfo();
+                await SendDead();
+                return;
             }
+            // activation du BOT pour connaitre le niveau de détection
             turn++;
             var buffer = new byte[(byte)MessageSize.Turn];
             buffer[0] = System.Text.Encoding.ASCII.GetBytes("T")[0];
@@ -340,8 +364,8 @@ namespace BattleIAserver
             buffer[4] = (byte)(bot.Energy >> 8);
             buffer[5] = (byte)bot.ShieldLevel;
             buffer[6] = (byte)(bot.ShieldLevel >> 8);
-            buffer[7] = (byte)bot.CloackLevel;
-            buffer[8] = (byte)(bot.CloackLevel >> 8);
+            buffer[7] = (byte)bot.CloakLevel;
+            buffer[8] = (byte)(bot.CloakLevel >> 8);
             try
             {
                 State = BotState.WaitingAnswerD;
@@ -352,7 +376,7 @@ namespace BattleIAserver
             {
                 if (MainGame.TheMap[bot.X, bot.Y] == CaseState.Ennemy)
                     MainGame.TheMap[bot.X, bot.Y] = CaseState.Empty;
-                System.Diagnostics.Debug.WriteLine($"[ERROR] {err.Message}");
+                Console.WriteLine($"[ERROR] {err.Message}");
                 State = BotState.Error;
             }
         }
@@ -366,8 +390,8 @@ namespace BattleIAserver
             buffer[2] = (byte)(bot.Energy >> 8);
             buffer[3] = (byte)bot.ShieldLevel;
             buffer[4] = (byte)(bot.ShieldLevel >> 8);
-            buffer[5] = (byte)bot.CloackLevel;
-            buffer[6] = (byte)(bot.CloackLevel >> 8);
+            buffer[5] = (byte)bot.CloakLevel;
+            buffer[6] = (byte)(bot.CloakLevel >> 8);
             try
             {
                 System.Diagnostics.Debug.WriteLine($"Sending 'C' to {bot.GUID}");
@@ -377,9 +401,29 @@ namespace BattleIAserver
             {
                 if (MainGame.TheMap[bot.X, bot.Y] == CaseState.Ennemy)
                     MainGame.TheMap[bot.X, bot.Y] = CaseState.Empty;
-                System.Diagnostics.Debug.WriteLine($"[ERROR] {err.Message}");
+                Console.WriteLine($"[ERROR] {err.Message}");
                 State = BotState.Error;
             }
+        }
+
+        public async Task SendDead()
+        {
+            if (IsEnd) return;
+            State = BotState.IsDead;
+            var buffer = new byte[(byte)MessageSize.Dead];
+            buffer[0] = System.Text.Encoding.ASCII.GetBytes("D")[0];
+            try
+            {
+                Console.WriteLine($"Bot {bot.Name} is dead!");
+                await webSocket.SendAsync(new ArraySegment<byte>(buffer, 0, buffer.Length), WebSocketMessageType.Text, true, CancellationToken.None);
+            }
+            catch (Exception err)
+            {
+                Console.WriteLine($"[ERROR] {err.Message}");
+                State = BotState.Error;
+            }
+            if (MainGame.TheMap[bot.X, bot.Y] == CaseState.Ennemy)
+                MainGame.TheMap[bot.X, bot.Y] = CaseState.Energy;
         }
 
         public async Task DoScan(byte size)
@@ -418,7 +462,7 @@ namespace BattleIAserver
             {
                 if (MainGame.TheMap[bot.X, bot.Y] == CaseState.Ennemy)
                     MainGame.TheMap[bot.X, bot.Y] = CaseState.Empty;
-                System.Diagnostics.Debug.WriteLine($"[ERROR] {err.Message}");
+                Console.WriteLine($"[ERROR] {err.Message}");
                 State = BotState.Error;
             }
 
@@ -450,6 +494,7 @@ namespace BattleIAserver
                     MainGame.TheMap[bot.X, bot.Y] = CaseState.Ennemy;
                     break;
                 case CaseState.Energy:
+                    MainGame.ViewerClearCase((byte)(bot.X + x), (byte)(bot.Y + y));
                     MainGame.ViewerMovePlayer(bot.X, bot.Y, (byte)(bot.X + x), (byte)(bot.Y + y));
                     MainGame.TheMap[bot.X, bot.Y] = CaseState.Empty;
                     bot.X = (byte)(bot.X + x);
@@ -478,11 +523,11 @@ namespace BattleIAserver
                     }
                     break;
             }
+            await SendChangeInfo();
             if (bot.Energy == 0)
             {
-                // TODO: is dead :(
+                await SendDead();
             }
-            await SendChangeInfo();
         }
     }
 }
