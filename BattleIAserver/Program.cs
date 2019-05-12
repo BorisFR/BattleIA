@@ -14,7 +14,6 @@ namespace BattleIAserver
             //var ConsOut = Console.Out;  //Save the reference to the old out value (The terminal)
             //Console.SetOut(new StreamWriter(Stream.Null)); //Remove console output
 
-            MainGame.InitNewMap();
 
             //var pathToExe = Process.GetCurrentProcess().MainModule.FileName;
             var currentDir = Directory.GetCurrentDirectory();
@@ -24,11 +23,15 @@ namespace BattleIAserver
             //var kso = new KestrelServerOptions();
             //kso.ListenLocalhost(2626);
 
+            var prm = Newtonsoft.Json.JsonConvert.DeserializeObject<Settings>(File.ReadAllText(Path.Combine(currentDir, "settings.json")));
+            MainGame.Settings = prm;
+            MainGame.InitNewMap();
+
             var host = new WebHostBuilder()
             .UseContentRoot(pathToContentRoot)
             .UseKestrel()
             .UseStartup<Startup>()
-            .ConfigureKestrel((context, options) => { options.ListenAnyIP(2626); })
+            .ConfigureKestrel((context, options) => { options.ListenAnyIP(MainGame.Settings.ServerPort); })
             .Build();                     //Modify the building per your needs
 
             //host.Run();
@@ -48,16 +51,16 @@ namespace BattleIAserver
                     case "h":
                         ShowHelp();
                         break;
-                    case "q":
-                        Console.WriteLine("Quit");
+                    case "e":
+                        Console.WriteLine("Exit program");
                         if (MainGame.AllBot.Count>0)
                         {
-                            Console.WriteLine("Impossible car il y a au moins 1 BOT de connecté.");
+                            Console.WriteLine("Not possible, at least 1 BOT is in arena.");
                         } else
                         {
                             if(MainGame.AllViewer.Count > 0)
                             {
-                                Console.WriteLine("Impossible car il y a au moins 1 VIEWER de connecté.");
+                                Console.WriteLine("Not possible, at least 1 VIEWER is working.");
                             } else
                             {
                                 exit = true;
@@ -73,7 +76,7 @@ namespace BattleIAserver
                         MainGame.StopSimulator();
                         break;
                     case "x": // debug stuff to view shield
-                        foreach (OneClient x in MainGame.AllBot)
+                        foreach (OneBot x in MainGame.AllBot)
                         {
                             x.bot.ShieldLevel++;
                             if (x.bot.ShieldLevel > 10)
@@ -82,7 +85,7 @@ namespace BattleIAserver
                         }
                         break;
                     case "w": // debug stuff to view cloak
-                        foreach (OneClient x in MainGame.AllBot)
+                        foreach (OneBot x in MainGame.AllBot)
                         {
                             x.bot.CloakLevel++;
                             if (x.bot.CloakLevel > 10)
@@ -98,10 +101,10 @@ namespace BattleIAserver
         public static void ShowHelp()
         {
             Console.WriteLine("Help");
-            Console.WriteLine("h\t Affiche cette liste de commandes");
-            Console.WriteLine("q\t Terminer le programme");
-            Console.WriteLine("g\t Exécute la simulation");
-            Console.WriteLine("s\t Arrêt de la simulation");
+            Console.WriteLine("h\t Display this text");
+            Console.WriteLine("e\t Exit program");
+            Console.WriteLine("g\t Start simulator");
+            Console.WriteLine("s\t Stop simulator");
         }
     }
 }

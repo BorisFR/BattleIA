@@ -1,21 +1,15 @@
-﻿using System;
+﻿using BattleIA;
+using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Net.WebSockets;
 using System.Threading;
 using System.Threading.Tasks;
-using BattleIA;
 
 namespace BattleIAserver
 {
     public static class MainGame
     {
-        public static UInt16 MapWidth = 32;
-        public static UInt16 MapHeight = 22;
-        public static UInt16 StartEnergy = 100;
-
-        private static UInt16 percentWall = 3;
-        private static UInt16 percentEnergy = 5;
+        public static Settings Settings;
 
         /// <summary>
         /// Contient le terrain de simulation
@@ -27,32 +21,34 @@ namespace BattleIAserver
         /// <summary>
         /// Objet pour verrou lors de l'utilisation de la LIST car nous sommes en thread !
         /// </summary>
-        private static Object lockList = new Object();
+        private static Object lockListBot = new Object();
 
         /// <summary>
         /// L'ensemble des BOTs client connectés
         /// </summary>
-        public static List<OneClient> AllBot = new List<OneClient>();
+        public static List<OneBot> AllBot = new List<OneBot>();
+
 
         /// <summary>
         /// Création d'un nouveau terrai de simulation, complet
         /// </summary>
         public static void InitNewMap()
         {
-            TheMap = new CaseState[MapWidth, MapHeight];
+            Console.WriteLine($"Building a new arena {Settings.MapWidth}x{Settings.MapHeight}");
+            TheMap = new CaseState[Settings.MapWidth, Settings.MapHeight];
             // les murs extérieurs
-            for (int i = 0; i < MapWidth; i++)
+            for (int i = 0; i < Settings.MapWidth; i++)
             {
                 TheMap[i, 0] = CaseState.Wall;
-                TheMap[i, MapHeight - 1] = CaseState.Wall;
-                for (int j = 0; j < MapHeight; j++)
+                TheMap[i, Settings.MapHeight - 1] = CaseState.Wall;
+                for (int j = 0; j < Settings.MapHeight; j++)
                 {
                     TheMap[0, j] = CaseState.Wall;
-                    TheMap[MapWidth - 1, j] = CaseState.Wall;
+                    TheMap[Settings.MapWidth - 1, j] = CaseState.Wall;
                 }
             }
-            int availableCases = (MapWidth - 2) * (MapHeight - 2);
-            int wallToPlace = percentWall * availableCases / 100;
+            int availableCases = (Settings.MapWidth - 2) * (Settings.MapHeight - 2);
+            int wallToPlace = Settings.MapPercentWall * availableCases / 100;
             MapXY xy = new MapXY();
             // on ajoute quelques blocs à l'intérieur
             for (int n = 0; n < wallToPlace; n++)
@@ -69,12 +65,12 @@ namespace BattleIAserver
         /// </summary>
         public static void RefuelMap()
         {
-            int availableCases = (MapWidth - 2) * (MapHeight - 2);
-            int energyToPlace = percentEnergy * availableCases / 100;
+            int availableCases = (Settings.MapWidth - 2) * (Settings.MapHeight - 2);
+            int energyToPlace = Settings.MapPercentEnergy * availableCases / 100;
             int count = 0;
-            for (int i = 0; i < MapWidth; i++)
+            for (int i = 0; i < Settings.MapWidth; i++)
             {
-                for (int j = 0; j < MapHeight; j++)
+                for (int j = 0; j < Settings.MapHeight; j++)
                 {
                     if (TheMap[i, j] == CaseState.Energy)
                         count++;
@@ -106,8 +102,8 @@ namespace BattleIAserver
             MapXY xy = new MapXY();
             do
             {
-                xy.X = (byte)(RND.Next(MapWidth - 2) + 1);
-                xy.Y = (byte)(RND.Next(MapHeight - 2) + 1);
+                xy.X = (byte)(RND.Next(Settings.MapWidth - 2) + 1);
+                xy.Y = (byte)(RND.Next(Settings.MapHeight - 2) + 1);
                 if (TheMap[xy.X, xy.Y] == CaseState.Empty)
                 {
                     ok = true;
@@ -115,6 +111,34 @@ namespace BattleIAserver
             } while (!ok);
             return xy;
         }
+
+
+        public static void SendMapInfoToCockpit(Guid guid)
+        {
+            var buffer = new byte[5 + Settings.MapWidth * MainGame.Settings.MapHeight];
+            buffer[0] = System.Text.Encoding.ASCII.GetBytes("M")[0];
+            buffer[1] = (byte)Settings.MapWidth;
+            buffer[2] = (byte)(Settings.MapWidth >> 8);
+            buffer[3] = (byte)Settings.MapHeight;
+            buffer[4] = (byte)(Settings.MapHeight >> 8);
+            int index = 5;
+            for (int j = 0; j < MainGame.Settings.MapHeight; j++)
+                for (int i = 0; i < MainGame.Settings.MapWidth; i++)
+                {
+                    switch(MainGame.TheMap[i, j])
+                    {
+                        case CaseState.Wall:
+                        case CaseState.Empty:
+                            buffer[index++] = (byte)MainGame.TheMap[i, j];
+                            break;
+                        default:
+                            buffer[index++] = (byte)CaseState.Empty; ;
+                            break;
+                    }
+                }
+            SendCockpitInfo(guid, new ArraySegment<byte>(buffer, 0, buffer.Length));
+        }
+
 
         private static bool turnRunning = false;
 
@@ -125,24 +149,24 @@ namespace BattleIAserver
         {
             if (turnRunning) return;
             turnRunning = true;
-            System.Diagnostics.Debug.WriteLine("Démarrage de la simulation");
+            Console.WriteLine("Running simulator...");
             while (turnRunning)
             {
                 //System.Diagnostics.Debug.WriteLine("One turns...");
-                OneClient[] bots = null;
+                OneBot[] bots = null;
                 int count = 0;
-                lock (lockList)
+                lock (lockListBot)
                 {
                     count = AllBot.Count;
                     if (count > 0)
                     {
-                        bots = new OneClient[count];
+                        bots = new OneBot[count];
                         AllBot.CopyTo(bots);
                     }
                 }
                 if (count == 0)
                 {
-                    Console.WriteLine("Il n'y a plus de BOT, arrêt de la simulation.");
+                    Console.WriteLine("No more BOT, ending simulator.");
                     //Thread.Sleep(500);
                     turnRunning = false;
                 }
@@ -157,11 +181,84 @@ namespace BattleIAserver
                     MainGame.RefuelMap();
                 }
             }
-            Console.WriteLine("Fin de la simulation.");
+            Console.WriteLine("End of running.");
         }
 
+        private static Object lockListCockpit = new Object();
+        public static List<OneCockpit> AllCockpit = new List<OneCockpit>();
+
+        public static async Task AddCockpit(WebSocket webSocket)
+        {
+            OneCockpit client = new OneCockpit(webSocket);
+            List<OneCockpit> toRemove = new List<OneCockpit>();
+            lock (lockListCockpit)
+            {
+                foreach (OneCockpit o in AllCockpit)
+                {
+                    if (o.MustRemove)
+                        toRemove.Add(o);
+                }
+                AllCockpit.Add(client);
+            };
+            foreach (OneCockpit o in toRemove)
+                RemoveCockpit(o.ClientGuid);
+            Console.WriteLine($"#cockpit: {AllCockpit.Count}");
+            await client.WaitReceive();
+            RemoveCockpit(client.ClientGuid);
+        }
+
+        public static void RemoveCockpit(Guid guid)
+        {
+            OneCockpit toRemove = null;
+            lock (lockListViewer)
+            {
+                foreach (OneCockpit o in AllCockpit)
+                {
+                    if (o.ClientGuid == guid)
+                    {
+                        toRemove = o;
+                        break;
+                    }
+                }
+                if (toRemove != null)
+                    AllCockpit.Remove(toRemove);
+            }
+            Console.WriteLine($"#cockpit: {AllCockpit.Count}");
+        }
+
+        public static void SendCockpitInfo(Guid guid, ArraySegment<byte> buffer)
+        {
+            lock (lockListViewer)
+            {
+                foreach (OneCockpit o in AllCockpit)
+                {
+                    if (o.ClientGuid == guid)
+                    {
+                        o.SendInfo(buffer);
+                    }
+                }
+            }
+        }
+
+        public static void SendCockpitInfo(Guid guid, string info)
+        {
+            var buffer = System.Text.Encoding.UTF8.GetBytes(info);
+            lock (lockListViewer)
+            {
+                foreach (OneCockpit o in AllCockpit)
+                {
+                    if (o.ClientGuid == guid)
+                    {
+                        o.SendInfo(buffer);
+                    }
+                }
+            }
+        }
+
+
+
         private static Object lockListViewer = new Object();
-        public static List<OneViewer> AllViewer = new List<OneViewer>();
+        public static List<OneDisplay> AllViewer = new List<OneDisplay>();
 
         /// <summary>
         /// Un nouveau VIEWER de la simulation
@@ -171,21 +268,21 @@ namespace BattleIAserver
         public static async Task AddViewer(WebSocket webSocket)
         {
             // on en fait un vrai client
-            OneViewer client = new OneViewer(webSocket);
+            OneDisplay client = new OneDisplay(webSocket);
             // on profite de faire le ménage au cas où
-            List<OneViewer> toRemove = new List<OneViewer>();
+            List<OneDisplay> toRemove = new List<OneDisplay>();
             lock (lockListViewer)
             {
-                foreach (OneViewer o in AllViewer)
+                foreach (OneDisplay o in AllViewer)
                 {
                     if (o.MustRemove)
                         toRemove.Add(o);
                 }
                 AllViewer.Add(client);
             };
-            foreach (OneViewer o in toRemove)
+            foreach (OneDisplay o in toRemove)
                 RemoveViewer(o.ClientGuid);
-            Console.WriteLine($"#viewer: {AllViewer.Count}");
+            Console.WriteLine($"#display: {AllViewer.Count}");
             // on se met à l'écoute des messages de ce client
             await client.WaitReceive();
             RemoveViewer(client.ClientGuid);
@@ -193,10 +290,10 @@ namespace BattleIAserver
 
         public static void RemoveViewer(Guid guid)
         {
-            OneViewer toRemove = null;
+            OneDisplay toRemove = null;
             lock (lockListViewer)
             {
-                foreach (OneViewer o in AllViewer)
+                foreach (OneDisplay o in AllViewer)
                 {
                     if (o.ClientGuid == guid)
                     {
@@ -207,7 +304,7 @@ namespace BattleIAserver
                 if (toRemove != null)
                     AllViewer.Remove(toRemove);
             }
-            Console.WriteLine($"#viewer: {AllViewer.Count}");
+            Console.WriteLine($"#display: {AllViewer.Count}");
         }
 
         /// <summary>
@@ -215,15 +312,15 @@ namespace BattleIAserver
         /// </summary>
         /// <param name="webSocket"></param>
         /// <returns></returns>
-        public static async Task AddClient(WebSocket webSocket)
+        public static async Task AddBot(WebSocket webSocket)
         {
-            OneClient client = new OneClient(webSocket);
-            List<OneClient> toRemove = new List<OneClient>();
+            OneBot client = new OneBot(webSocket);
+            List<OneBot> toRemove = new List<OneBot>();
             //Console.WriteLine("un peu de ménage");
-            lock (lockList)
+            lock (lockListBot)
             {
                 // au cas où, on en profite pour faire le ménage
-                foreach (OneClient o in AllBot)
+                foreach (OneBot o in AllBot)
                 {
                     if (o.State == BotState.Error || o.State == BotState.Disconnect)
                         toRemove.Add(o);
@@ -232,8 +329,8 @@ namespace BattleIAserver
             };
             // fin du ménage
             //Console.WriteLine("Do it!");
-            foreach (OneClient o in toRemove)
-                Remove(o.ClientGuid);
+            foreach (OneBot o in toRemove)
+                RemoveBot(o.ClientGuid);
             Console.WriteLine($"#bots: {AllBot.Count}");
 
             /*Console.WriteLine("Starting thread");
@@ -244,7 +341,26 @@ namespace BattleIAserver
             await client.WaitReceive();
             // arrivé ici, c'est que le client s'est déconnecté
             // on se retire de la liste des clients websocket
-            Remove(client.ClientGuid);
+            RemoveBot(client.ClientGuid);
+        }
+
+        public static CaseState IsEnnemyVisible(byte px, byte py, int ex, int ey)
+        {
+            lock (lockListBot)
+            {
+                foreach (OneBot o in AllBot)
+                {
+                    if(o.bot.X == ex && o.bot.Y == ey)
+                    {
+                        if (o.bot.CloakLevel == 0)
+                            return CaseState.Ennemy;
+                        if((Math.Abs(ex - px) <= o.bot.CloakLevel) && (Math.Abs(ey - py) <= o.bot.CloakLevel))
+                            return CaseState.Empty;
+                        return CaseState.Ennemy;
+                    }
+                }
+            };
+            return CaseState.Empty;
         }
 
         public static Thread SimulatorThread = new Thread(DoTurns);
@@ -254,7 +370,7 @@ namespace BattleIAserver
             //Thread t = new Thread(DoTurns);
             if(SimulatorThread.IsAlive)
             {
-                Console.WriteLine("La simulation est déjà en cours d'exécution.");
+                Console.WriteLine("Simulator is already running.");
                 return;
             }
             SimulatorThread = new Thread(DoTurns);
@@ -275,12 +391,12 @@ namespace BattleIAserver
         /// on a surement perdu sa conenction
         /// </summary>
         /// <param name="guid">l'id du client qu'il faut enlever</param>
-        public static void Remove(Guid guid)
+        public static void RemoveBot(Guid guid)
         {
-            OneClient toRemove = null;
-            lock (lockList)
+            OneBot toRemove = null;
+            lock (lockListBot)
             {
-                foreach (OneClient o in AllBot)
+                foreach (OneBot o in AllBot)
                 {
                     if (o.ClientGuid == guid)
                     {
@@ -295,7 +411,7 @@ namespace BattleIAserver
             {
                 RefreshViewer();
             }
-            Console.WriteLine($"#clients: {AllBot.Count}");
+            Console.WriteLine($"#bots: {AllBot.Count}");
         }
 
         /// <summary>
@@ -308,9 +424,9 @@ namespace BattleIAserver
         /// <returns></returns>
         public static void Broadcast(string text)
         {
-            lock (lockList)
+            lock (lockListBot)
             {
-                foreach (OneClient o in AllBot)
+                foreach (OneBot o in AllBot)
                 {
                     o.SendMessage(text);
                 }
@@ -321,7 +437,7 @@ namespace BattleIAserver
         {
             lock (lockListViewer)
             {
-                foreach (OneViewer o in AllViewer)
+                foreach (OneDisplay o in AllViewer)
                 {
                     o.SendMapInfo();
                 }
@@ -332,7 +448,7 @@ namespace BattleIAserver
         {
             lock (lockListViewer)
             {
-                foreach (OneViewer o in AllViewer)
+                foreach (OneDisplay o in AllViewer)
                 {
                     o.SendMovePlayer(x1, y1, x2, y2);
                 }
@@ -343,7 +459,7 @@ namespace BattleIAserver
         {
             lock (lockListViewer)
             {
-                foreach (OneViewer o in AllViewer)
+                foreach (OneDisplay o in AllViewer)
                 {
                     o.SendClearCase(x1, y1);
                 }
@@ -354,7 +470,7 @@ namespace BattleIAserver
         {
             lock (lockListViewer)
             {
-                foreach (OneViewer o in AllViewer)
+                foreach (OneDisplay o in AllViewer)
                 {
                     o.SendAddEnergy(x1, y1);
                 }
@@ -370,7 +486,7 @@ namespace BattleIAserver
         {
             lock (lockListViewer)
             {
-                foreach (OneViewer o in AllViewer)
+                foreach (OneDisplay o in AllViewer)
                 {
                     o.SendPlayerShield(x1, y1, s1, s2);
                 }
@@ -386,7 +502,7 @@ namespace BattleIAserver
         {
             lock (lockListViewer)
             {
-                foreach (OneViewer o in AllViewer)
+                foreach (OneDisplay o in AllViewer)
                 {
                     o.SendPlayerCloak(x1, y1, s1, s2);
                 }

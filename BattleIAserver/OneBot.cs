@@ -1,14 +1,12 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
+﻿using BattleIA;
+using System;
 using System.Net.WebSockets;
 using System.Threading;
 using System.Threading.Tasks;
-using BattleIA;
 
 namespace BattleIAserver
 {
-    public class OneClient
+    public class OneBot
     {
         public BotState State { get; private set; } = BotState.Undefined;
         public Guid ClientGuid { get; }
@@ -23,7 +21,7 @@ namespace BattleIAserver
         /// </summary>
         private UInt16 turn = 0;
 
-        public OneClient(WebSocket webSocket)
+        public OneBot(WebSocket webSocket)
         {
             this.webSocket = webSocket;
             ClientGuid = Guid.NewGuid();
@@ -90,7 +88,8 @@ namespace BattleIAserver
                         MainGame.TheMap[xy.X, xy.Y] = CaseState.Ennemy;
                         bot.X = xy.X;
                         bot.Y = xy.Y;
-                        bot.Energy = MainGame.StartEnergy; ;
+                        bot.Energy = MainGame.Settings.EnergyStart;
+                        bot.Score = 0;
                         Console.WriteLine($"[NEW BOT] {bot.GUID} @ {xy.X}/{xy.Y}");
 
                         State = BotState.Ready;
@@ -98,6 +97,7 @@ namespace BattleIAserver
 
                         MainGame.RefreshViewer();
 
+                        SendPositionToCockpit();
                         //await StartNewTurn();
                     }
                     else
@@ -185,7 +185,7 @@ namespace BattleIAserver
                                         return;
                                     }
                                     byte direction = buffer[1];
-                                    Console.WriteLine($"Bot {bot.Name} moving direction {direction}");
+                                    Console.WriteLine($"Bot {bot.Name} moving direction {(MoveDirection)direction}");
                                     await DoMove((MoveDirection)direction);
                                     State = BotState.Ready;
                                     await SendMessage("OK");
@@ -242,10 +242,22 @@ namespace BattleIAserver
                                     State = BotState.Ready;
                                     await SendMessage("OK");
                                     break;
-                                case BotAction.Fire:
+                                case BotAction.Shoot:
+                                    if (result.Count < 2)
+                                    {
+                                        MainGame.TheMap[bot.X, bot.Y] = CaseState.Empty;
+                                        IsEnd = true;
+                                        State = BotState.Disconnect;
+                                        await webSocket.CloseAsync(WebSocketCloseStatus.ProtocolError, "Missing data in answer 'F'", CancellationToken.None);
+                                        return;
+                                    }
+                                    byte fireDirection = buffer[1];
+                                    Console.WriteLine($"Bot {bot.Name} shoot in direction {fireDirection}");
                                     // TODO: effectuer le tir :)
-                                    Console.WriteLine($"Bot {bot.Name} shoot");
-                                    bot.Energy--;
+                                    if (bot.Energy > MainGame.Settings.EnergyLostShot)
+                                        bot.Energy -= MainGame.Settings.EnergyLostShot;
+                                    else
+                                        bot.Energy = 0;
                                     if (bot.Energy == 0)
                                     {
                                         await SendChangeInfo();
@@ -272,6 +284,7 @@ namespace BattleIAserver
                                 Console.WriteLine($"Le BOT {bot.GUID} se nomme {bot.Name}");
                                 State = BotState.Ready;
                                 await SendMessage("OK");
+                                MainGame.SendCockpitInfo(bot.GUID, "N" + bot.Name);
                                 break;
                             }
                             Console.WriteLine($"[ERROR] lost with state {State}");
@@ -345,16 +358,23 @@ namespace BattleIAserver
         {
             if (IsEnd) return; // c'est déjà fini pour lui...
             if (State != BotState.Ready) return; // pas normal...
+            bot.Score += MainGame.Settings.PointByTurn;
             if (turn > 0) // pas le premier tour, donc on applique la consommation d'énergie
             {
-                if (bot.Energy > 0)
-                    bot.Energy--;
+                if (bot.Energy > MainGame.Settings.EnergyLostByTurn)
+                    bot.Energy -= MainGame.Settings.EnergyLostByTurn;
+                else
+                    bot.Energy = 0;
                 if (bot.ShieldLevel > 0)
-                    if (bot.Energy > 0)
-                        bot.Energy--;
+                    if (bot.Energy > MainGame.Settings.EnergyLostByShield)
+                        bot.Energy -= MainGame.Settings.EnergyLostByShield;
+                    else
+                        bot.Energy = 0;
                 if (bot.CloakLevel > 0)
-                    if (bot.Energy > 0)
-                        bot.Energy--;
+                    if (bot.Energy > MainGame.Settings.EnergyLostByCloak)
+                        bot.Energy -= MainGame.Settings.EnergyLostByCloak;
+                    else
+                        bot.Energy = 0;
             }
             // reste-t-il de l'énergie ?
             if (bot.Energy == 0)
@@ -393,7 +413,7 @@ namespace BattleIAserver
         public async Task SendChangeInfo()
         {
             if (IsEnd) return;
-            var buffer = new byte[(byte)MessageSize.Change];
+            var buffer = new byte[(byte)MessageSize.Change + 2];
             buffer[0] = System.Text.Encoding.ASCII.GetBytes("C")[0];
             buffer[1] = (byte)bot.Energy;
             buffer[2] = (byte)(bot.Energy >> 8);
@@ -401,10 +421,13 @@ namespace BattleIAserver
             buffer[4] = (byte)(bot.ShieldLevel >> 8);
             buffer[5] = (byte)bot.CloakLevel;
             buffer[6] = (byte)(bot.CloakLevel >> 8);
+            buffer[7] = (byte)bot.Score;
+            buffer[8] = (byte)(bot.Score >> 8);
             try
             {
                 System.Diagnostics.Debug.WriteLine($"Sending 'C' to {bot.GUID}");
                 await webSocket.SendAsync(new ArraySegment<byte>(buffer, 0, buffer.Length), WebSocketMessageType.Text, true, CancellationToken.None);
+                MainGame.SendCockpitInfo(bot.GUID, new ArraySegment<byte>(buffer, 0, buffer.Length)); 
             }
             catch (Exception err)
             {
@@ -433,6 +456,7 @@ namespace BattleIAserver
             }
             if (MainGame.TheMap[bot.X, bot.Y] == CaseState.Ennemy)
                 MainGame.TheMap[bot.X, bot.Y] = CaseState.Energy;
+            MainGame.SendCockpitInfo(bot.GUID, new ArraySegment<byte>(buffer, 0, buffer.Length));
         }
 
         public async Task DoScan(byte size)
@@ -449,13 +473,27 @@ namespace BattleIAserver
                 int posX = bot.X - size;
                 for (UInt16 i = 0; i < (2 * size + 1); i++)
                 {
-                    if (posX < 0 || posX >= MainGame.MapWidth || posY < 0 || posY >= MainGame.MapHeight)
+                    if (posX < 0 || posX >= MainGame.Settings.MapWidth || posY < 0 || posY >= MainGame.Settings.MapHeight)
                     {
                         buffer[posByte++] = (byte)CaseState.Wall;
                     }
                     else
                     {
-                        buffer[posByte++] = (byte)MainGame.TheMap[posX, posY];
+                        CaseState cs = MainGame.TheMap[posX, posY];
+                        switch (cs)
+                        {
+                            case CaseState.Empty:
+                            case CaseState.Wall:
+                            case CaseState.Energy:
+                                buffer[posByte++] = (byte)cs;
+                                break;
+                            case CaseState.Ennemy:
+                                buffer[posByte++] = (byte)MainGame.IsEnnemyVisible(bot.X, bot.Y, posX, posY);
+                                break;
+                            default:
+                                buffer[posByte++] = (byte)cs;
+                                break;
+                        }
                     }
                     posX++;
                 }
@@ -466,6 +504,8 @@ namespace BattleIAserver
                 State = BotState.WaitingAction;
                 System.Diagnostics.Debug.WriteLine($"Sending 'I' to {bot.GUID}");
                 await webSocket.SendAsync(new ArraySegment<byte>(buffer, 0, buffer.Length), WebSocketMessageType.Text, true, CancellationToken.None);
+                if(size > 0)
+                    MainGame.SendCockpitInfo(bot.GUID, new ArraySegment<byte>(buffer, 0, buffer.Length));
             }
             catch (Exception err)
             {
@@ -477,7 +517,7 @@ namespace BattleIAserver
 
         }
 
-        public async Task IsHit()
+        public async Task<UInt16> IsHit()
         {
             Console.WriteLine($"Bot {bot.Name} a été tamponné");
             if (bot.ShieldLevel > 0)
@@ -487,19 +527,36 @@ namespace BattleIAserver
             }
             else
             {
-                if (bot.Energy > 0)
-                    bot.Energy--;
+                if (bot.Energy > MainGame.Settings.EnergyLostContactEnemy)
+                    bot.Energy -= MainGame.Settings.EnergyLostContactEnemy;
+                else
+                    bot.Energy = 0;
             }
             await SendChangeInfo();
             if (bot.Energy == 0)
             {
                 await SendDead();
+                return MainGame.Settings.PointByEnnemyKill;
             }
+            return 0;
+        }
+
+        public void SendPositionToCockpit()
+        {
+            if (IsEnd) return;
+            var buffer = new byte[(byte)MessageSize.Position];
+            buffer[0] = System.Text.Encoding.ASCII.GetBytes("P")[0];
+            buffer[1] = (byte)bot.X;
+            buffer[2] = (byte)bot.Y;
+            MainGame.SendCockpitInfo(bot.GUID, new ArraySegment<byte>(buffer, 0, buffer.Length));
         }
 
         public async Task DoMove(MoveDirection direction)
         {
-            bot.Energy--;
+            if (bot.Energy > MainGame.Settings.EnergyLostByMove)
+                bot.Energy -= MainGame.Settings.EnergyLostByMove;
+            else
+                bot.Energy = 0;
             int x = 0;
             int y = 0;
             switch (direction)
@@ -509,10 +566,11 @@ namespace BattleIAserver
                 case MoveDirection.South: y = -1; break;
                 case MoveDirection.East: x = -1; break;
                 case MoveDirection.West: x = 1; break;
-                case MoveDirection.NorthWest: y = 1; x = 1; break;
+                /*case MoveDirection.NorthWest: y = 1; x = 1; break;
                 case MoveDirection.NorthEast: y = 1; x = -1; break;
                 case MoveDirection.SouthWest: y = -1; x = 1; break;
                 case MoveDirection.SouthEast: y = -1; x = -1; break;
+                */
             }
             switch (MainGame.TheMap[bot.X + x, bot.Y + y])
             {
@@ -522,6 +580,7 @@ namespace BattleIAserver
                     bot.X = (byte)(bot.X + x);
                     bot.Y = (byte)(bot.Y + y);
                     MainGame.TheMap[bot.X, bot.Y] = CaseState.Ennemy;
+                    SendPositionToCockpit();
                     break;
                 case CaseState.Energy:
                     MainGame.ViewerClearCase((byte)(bot.X + x), (byte)(bot.Y + y));
@@ -532,8 +591,10 @@ namespace BattleIAserver
                     MainGame.TheMap[bot.X, bot.Y] = CaseState.Ennemy;
                     UInt16 temp = (UInt16)(MainGame.RND.Next(50) + 1);
                     bot.Energy += temp;
-                    Console.WriteLine($"Bot {bot.Name} capture {temp} energy");
+                    Console.WriteLine($"Bot {bot.Name} win energy: {temp}");
+                    bot.Score += MainGame.Settings.PointByEnergyFound;
                     //MainGame.RefreshViewer();
+                    SendPositionToCockpit();
                     break;
                 case CaseState.Ennemy: // on tamponne un bot adverse
                     if (bot.ShieldLevel > 0)
@@ -543,9 +604,12 @@ namespace BattleIAserver
                     }
                     else
                     {
-                        if (bot.Energy > 0)
-                            bot.Energy--;
+                        if (bot.Energy > MainGame.Settings.EnergyLostContactEnemy)
+                            bot.Energy -= MainGame.Settings.EnergyLostContactEnemy;
+                        else
+                            bot.Energy = 0;
                     }
+                    bot.Score += MainGame.Settings.PointByEnnemyTouch;
                     Console.WriteLine($"Bot {bot.Name} tamponne un bot ennemi !");
                     TouchEnemy((UInt16)(bot.X + x), (UInt16)(bot.Y + y));
                     break;
@@ -557,8 +621,10 @@ namespace BattleIAserver
                     }
                     else
                     {
-                        if (bot.Energy > 0)
-                            bot.Energy--;
+                        if (bot.Energy > MainGame.Settings.EnergyLostContactWall)
+                            bot.Energy -= MainGame.Settings.EnergyLostContactWall;
+                        else
+                            bot.Energy = 0;
                     }
                     break;
             }
@@ -571,11 +637,12 @@ namespace BattleIAserver
 
         private async void TouchEnemy(UInt16 x, UInt16 y)
         {
-            foreach(OneClient client in MainGame.AllBot)
+            foreach(OneBot client in MainGame.AllBot)
             {
                 if(client.bot.X == x && client.bot.Y == y)
                 {
-                    await client.IsHit();
+                    var pts = await client.IsHit();
+                    bot.Score += pts;
                     return;
                 }
             }

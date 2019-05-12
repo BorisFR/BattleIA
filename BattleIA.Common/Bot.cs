@@ -13,11 +13,14 @@ namespace BattleIA
         public UInt16 ShieldLevel;
         public UInt16 CloakLevel;
 
+        public UInt16 Score;
+
         // dynamics data
         public DateTime StartTime;
         public int ShortID;
 
         public byte X;
         public byte Y;
+
     }
 }

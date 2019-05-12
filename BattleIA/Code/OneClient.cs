@@ -224,7 +224,7 @@ namespace BattleIA
                                     State = BotState.Ready;
                                     await SendMessage("OK");
                                     break;
-                                case BotAction.Fire:
+                                case BotAction.Shoot:
                                     // TODO: effectuer le tir :)
                                     bot.Energy--;
                                     if (bot.Energy == 0)

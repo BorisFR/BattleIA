@@ -5,20 +5,21 @@ C'est un projet de type console
 démarre avec la ligne de commande : dotnet BattleIAserver.dll
 La partie site web n'est pas utilisée.
 Il ouvre une connectique réseau en websocket sur le port 2626
-ws://*:2626/ia			=> pour accueillir les BOTs
-ws://*:2626/console		=> pour le rendu html/css des BOTs
-ws://*:2626/display		=> pour le rendu graphique (fait avec Unity 3D)
+ws://*:4226/bot			=> pour accueillir les BOTs
+ws://*:4226/cockpit		=> pour le rendu html/css des BOTs
+ws://*:4226/display		=> pour le rendu graphique (fait avec Unity 3D)
+
+
+* BattleIA.Common
+-----------------
+Objets partagés entre les projets
+
 
 * BOT exemple
 -------------
 Projet : SampleBot
 C'est un projet de type console
-
-ws://127.0.0.1:2626/ia
-
-* BattleIA.Common
------------------
-Objets partagés entre les projets
+N'est plus utilisé / à jour car migré en Visual Studio Code
 
 
 * BattleIA
@@ -41,14 +42,14 @@ déclaration des websockets pour asp.net
 - chaque nouvelle connection de BOT envoi vers MainGame.AddClient()
 on y maintient une List des clients connectés
 /!\ on fonctionne en thread : donc on lock pour travailler sur la liste ;)
-- chaque nouvelle connection de RENDU envoi vers MainGame.AddViewer()
+- chaque nouvelle connection de DISPLAY envoi vers MainGame.AddViewer()
 on y maintient une List des viewers connectés
 /!\ on fonctionne en thread : donc on lock pour travailler sur la liste ;)
-- TODO: idem pour rendu HTML/CSS
+- idem pour rendu HTML/CSS avec /COCKPIT
 
 * protocole
 1/ le premier envoi contient le GUID du BOT
-le serveur renvoi OK si le GUID est présent et connu en base (pas de base...)
+le serveur renvoi OK si le GUID est ok
 1bis/ le bot envoi son nom : Nname
 le bot attend alors son tour
 
@@ -78,17 +79,17 @@ Il s'agit de la réponse à notre détection
 ...... est un tableau à 2 dimensions de taille # x #
 signification de chacune des valeurs
 0 : case vide
-1 : nous
+1 : nous / ennemi
 2 : mur infranchissable
 3 : énergie à récupérer (valeur inconnue)
 4 : ennemi
 
 La réponse a apporter est l'action que nous voulons effectuer
 Si aucune action, envoyer N
-Si déplacement, envoyer M# avec #=direction de 1 à 8 (voir enum)
+Si déplacement, envoyer M# avec #=direction de 1 à 4 (voir enum)
 Si protection, envoyer S#
 Si se cacher, envoyer C#
-Si tire sur ennemi, envoyer F...
+Si tire sur ennemi, envoyer F# avec #=direction de 1 à 4 (voir enum)
 
 4/ réception de Ceesscc
 Un changement vient d'avoir lieu, voici les nouvelles valeurs
@@ -100,3 +101,25 @@ cc : niveau de cloack / invisibilité
 Le BOT est mort
 
 {50A38383-9A61-42FA-92F2-97CE3ADC426D}
+
+* protocole cockpit
+1 - serveur attend GUID du bot dont on veut les info
+réponse OK du serveur
+
+2 - Nxxxxx
+C'est le nom du bot
+
+3 - Ceesscc
+Les infos du bot
+
+4 - I##################
+résultat d'un scan (si > 0)
+
+5 - Pxy
+position du bot sur l'aire de jeu
+
+6 - M#######################
+Les informations complete de la MAP
+
+7 - D
+Bot is dead

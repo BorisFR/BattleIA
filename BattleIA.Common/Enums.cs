@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace BattleIA
+﻿namespace BattleIA
 {
 
     public enum BotState : byte
@@ -21,7 +17,7 @@ namespace BattleIA
     public enum CaseState : byte
     {
         Empty = 0,
-        OurBot = 1,
+        // OurBot = 1,
         Wall = 2,
         Energy = 3,
         Ennemy = 4,
@@ -33,13 +29,14 @@ namespace BattleIA
         Move = 1,
         ShieldLevel = 2,
         CloakLevel = 3,
-        Fire = 4,
+        Shoot = 4,
     }
 
     public enum MessageSize : byte
     {
         Dead = 1,
         OK = 2,
+        Position = 3,
         Turn = 9,
         Change = 7,
     }
@@ -50,10 +47,11 @@ namespace BattleIA
         West = 2,
         South = 3,
         East = 4,
-        NorthWest = 5,
+        /*NorthWest = 5,
         SouthWest = 6,
         SouthEast = 7,
         NorthEast = 8,
+        */
     }
 
 }

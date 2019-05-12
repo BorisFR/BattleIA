@@ -117,7 +117,7 @@ namespace SampleBot
                                 var x = new byte[all];
                                 Array.Copy(buffer, 2, x, 0, all);
                                 ia.AreaInformation(surface, x);
-                                // must answer with action M / S / C / None
+                                // must answer with action Move / Shield / Cloak / Shoot / None
                                 var answerA = ia.GetAction(); // (byte)BotAction.None; // System.Text.Encoding.ASCII.GetBytes("N")[0];
                                 Console.WriteLine($"Sending Action: {(BotAction)answerA[0]}");
                                 await client.SendAsync(new ArraySegment<byte>(answerA), WebSocketMessageType.Text, true, CancellationToken.None);
