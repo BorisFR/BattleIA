@@ -522,15 +522,23 @@ namespace BattleIAserver
             Console.WriteLine($"Bot {bot.Name} a été tamponné");
             if (bot.ShieldLevel > 0)
             {
+                // le bouclier absorbe le choc
                 bot.ShieldLevel--;
                 MainGame.ViewerPlayerShield(bot.X, bot.Y, bot.ShieldLevel);
             }
             else
             {
+                // pas de bouclier, perte directe d'énergie !
                 if (bot.Energy > MainGame.Settings.EnergyLostContactEnemy)
                     bot.Energy -= MainGame.Settings.EnergyLostContactEnemy;
                 else
                     bot.Energy = 0;
+            }
+            // perte du champ occultant
+            if (bot.CloakLevel > 0)
+            {
+                bot.CloakLevel = 0;
+                MainGame.ViewerPlayerCloak(bot.X, bot.Y, bot.CloakLevel);
             }
             await SendChangeInfo();
             if (bot.Energy == 0)
@@ -609,6 +617,12 @@ namespace BattleIAserver
                         else
                             bot.Energy = 0;
                     }
+                    // perte du champ occultant
+                    if (bot.CloakLevel > 0)
+                    {
+                        bot.CloakLevel = 0;
+                        MainGame.ViewerPlayerCloak(bot.X, bot.Y, bot.CloakLevel);
+                    }
                     bot.Score += MainGame.Settings.PointByEnnemyTouch;
                     Console.WriteLine($"Bot {bot.Name} tamponne un bot ennemi !");
                     TouchEnemy((UInt16)(bot.X + x), (UInt16)(bot.Y + y));
@@ -625,6 +639,12 @@ namespace BattleIAserver
                             bot.Energy -= MainGame.Settings.EnergyLostContactWall;
                         else
                             bot.Energy = 0;
+                    }
+                    // perte du champ occultant
+                    if (bot.CloakLevel > 0)
+                    {
+                        bot.CloakLevel = 0;
+                        MainGame.ViewerPlayerCloak(bot.X, bot.Y, bot.CloakLevel);
                     }
                     break;
             }
