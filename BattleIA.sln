@@ -5,17 +5,18 @@ VisualStudioVersion = 15.0.28307.329
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BattleIA", "BattleIA\BattleIA.csproj", "{1A876A41-DE95-4168-8D4A-C273A5710630}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BattleIA.Common", "BattleIA.Common\BattleIA.Common.csproj", "{239D08D6-63E4-4642-863B-7DE17390010E}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BattleIA.Common", "BattleIA.Common\BattleIA.Common.csproj", "{239D08D6-63E4-4642-863B-7DE17390010E}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{7E243CC2-FD79-4C66-8603-8A81EA24FFBB}"
 	ProjectSection(SolutionItems) = preProject
+		Battle IA.pdf = Battle IA.pdf
 		Battle IA.pptx = Battle IA.pptx
 		notes.txt = notes.txt
 	EndProjectSection
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SampleBot", "SampleBot\SampleBot.csproj", "{F5E06D10-801A-4D3E-B99C-0127D4D3AA09}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SampleBot", "SampleBot\SampleBot.csproj", "{F5E06D10-801A-4D3E-B99C-0127D4D3AA09}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BattleIAserver", "BattleIAserver\BattleIAserver.csproj", "{8BED2773-3482-4EBC-AFE3-A0340E8E3183}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BattleIAserver", "BattleIAserver\BattleIAserver.csproj", "{8BED2773-3482-4EBC-AFE3-A0340E8E3183}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
