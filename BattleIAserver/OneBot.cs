@@ -253,9 +253,11 @@ namespace BattleIAserver
                                     }
                                     byte fireDirection = buffer[1];
                                     Console.WriteLine($"Bot {bot.Name} shoot in direction {fireDirection}");
-                                    // TODO: effectuer le tir :)
-                                    if (bot.Energy > MainGame.Settings.EnergyLostShot)
+                                    if (bot.Energy >= MainGame.Settings.EnergyLostShot)
+                                    {
                                         bot.Energy -= MainGame.Settings.EnergyLostShot;
+                                        DoShoot(fireDirection);
+                                    }
                                     else
                                         bot.Energy = 0;
                                     if (bot.Energy == 0)
@@ -519,6 +521,7 @@ namespace BattleIAserver
 
         public async Task<UInt16> IsHit()
         {
+            UInt16 points = 0;
             Console.WriteLine($"Bot {bot.Name} a été tamponné");
             if (bot.ShieldLevel > 0)
             {
@@ -528,8 +531,9 @@ namespace BattleIAserver
             }
             else
             {
+                points = MainGame.Settings.PointByEnnemyTouch;
                 // pas de bouclier, perte directe d'énergie !
-                if (bot.Energy > MainGame.Settings.EnergyLostContactEnemy)
+                if (bot.Energy >= MainGame.Settings.EnergyLostContactEnemy)
                     bot.Energy -= MainGame.Settings.EnergyLostContactEnemy;
                 else
                     bot.Energy = 0;
@@ -544,9 +548,9 @@ namespace BattleIAserver
             if (bot.Energy == 0)
             {
                 await SendDead();
-                return MainGame.Settings.PointByEnnemyKill;
+                points = MainGame.Settings.PointByEnnemyKill;
             }
-            return 0;
+            return points;
         }
 
         public void SendPositionToCockpit()
@@ -667,5 +671,44 @@ namespace BattleIAserver
                 }
             }
         }
+
+        private async void DoShoot(byte direction)
+        {
+            MoveDirection dir;
+            try
+            {
+                dir = (MoveDirection)direction;
+            } catch(Exception) { return; }
+            int dx = 0;
+            int dy = 0;
+            switch(dir)
+            {
+                case MoveDirection.North:
+                    dy = -1;
+                    break;
+                case MoveDirection.South:
+                    dy = 1;
+                    break;
+                case MoveDirection.East:
+                    dx = 1;
+                    break;
+                case MoveDirection.West:
+                    dx = -1;
+                    break;
+            }
+            int tx = bot.X + dx;
+            int ty = bot.Y + dy;
+            while(tx > 0 && tx < MainGame.Settings.MapWidth && ty > 0 && ty < MainGame.Settings.MapHeight)
+            {
+                if(MainGame.TheMap[tx,ty] == CaseState.Ennemy)
+                {
+                    TouchEnemy((ushort)tx, (ushort)ty);
+                    break;
+                }
+                tx += dx;
+                ty += dy;
+            }
+        } // DoShoot
+
     }
 }
