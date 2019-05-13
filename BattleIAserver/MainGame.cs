@@ -303,6 +303,8 @@ namespace BattleIAserver
                 }
                 if (toRemove != null)
                     AllViewer.Remove(toRemove);
+                else
+                    Console.WriteLine($"[DISPLAY ERROR] could not found {guid}");
             }
             Console.WriteLine($"#display: {AllViewer.Count}");
         }

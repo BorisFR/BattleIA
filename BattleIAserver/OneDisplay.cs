@@ -53,7 +53,7 @@ namespace BattleIAserver
                 if (command == "Q")
                 {
                     MustRemove = true;
-                    await webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, $"[DISPLAY CLOSING] receive {command}", CancellationToken.None);
+                    webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, $"[DISPLAY CLOSING] receive {command}", CancellationToken.None);
                     return;
                 }
                 if (command != "M")
