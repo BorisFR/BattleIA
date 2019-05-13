@@ -5,6 +5,7 @@ namespace BattleIAserver
     public class Settings
     {
         public int ServerPort = 2626;
+        public int DelayBetweenEachBotTurn = 500;
         public UInt16 MapWidth = 32;
         public UInt16 MapHeight = 22;
         public UInt16 MapPercentWall = 3;

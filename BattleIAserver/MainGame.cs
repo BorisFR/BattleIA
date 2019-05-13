@@ -175,7 +175,7 @@ namespace BattleIAserver
                     for (int i = 0; i < bots.Length; i++)
                     {
                         await bots[i].StartNewTurn();
-                        Thread.Sleep(500);
+                        Thread.Sleep(Settings.DelayBetweenEachBotTurn);
                     }
                     // on génère de l'énergie si nécessaire
                     MainGame.RefuelMap();

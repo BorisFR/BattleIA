@@ -1,5 +1,6 @@
 ﻿{
   "ServerPort": 4226,
+  "DelayBetweenEachBotTurn": 500,
   "MapWidth": 32,
   "MapHeight": 22,
   "MapPercentWall": 3,
@@ -15,5 +16,5 @@
   "PointByTurn": 1,
   "PointByEnergyFound": 8,
   "PointByEnnemyTouch": 20,
-  "PointByEnnemyKill":  70
+  "PointByEnnemyKill": 70
 }
