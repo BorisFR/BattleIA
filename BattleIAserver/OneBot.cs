@@ -341,7 +341,7 @@ namespace BattleIAserver
             var buffer = System.Text.Encoding.UTF8.GetBytes(text);
             try
             {
-                await webSocket.SendAsync(new ArraySegment<byte>(buffer, 0, buffer.Length), WebSocketMessageType.Text, true, CancellationToken.None);
+                await webSocket.SendAsync(new ArraySegment<byte>(buffer, 0, buffer.Length), WebSocketMessageType.Binary, true, CancellationToken.None);
             }
             catch (Exception err)
             {
@@ -401,7 +401,7 @@ namespace BattleIAserver
             {
                 State = BotState.WaitingAnswerD;
                 System.Diagnostics.Debug.WriteLine($"Sending 'T' to {bot.GUID}");
-                await webSocket.SendAsync(new ArraySegment<byte>(buffer, 0, buffer.Length), WebSocketMessageType.Text, true, CancellationToken.None);
+                await webSocket.SendAsync(new ArraySegment<byte>(buffer, 0, buffer.Length), WebSocketMessageType.Binary, true, CancellationToken.None);
             }
             catch (Exception err)
             {
@@ -428,7 +428,7 @@ namespace BattleIAserver
             try
             {
                 System.Diagnostics.Debug.WriteLine($"Sending 'C' to {bot.GUID}");
-                await webSocket.SendAsync(new ArraySegment<byte>(buffer, 0, buffer.Length), WebSocketMessageType.Text, true, CancellationToken.None);
+                await webSocket.SendAsync(new ArraySegment<byte>(buffer, 0, buffer.Length), WebSocketMessageType.Binary, true, CancellationToken.None);
                 MainGame.SendCockpitInfo(bot.GUID, new ArraySegment<byte>(buffer, 0, buffer.Length)); 
             }
             catch (Exception err)
@@ -449,7 +449,7 @@ namespace BattleIAserver
             try
             {
                 Console.WriteLine($"Bot {bot.Name} is dead!");
-                await webSocket.SendAsync(new ArraySegment<byte>(buffer, 0, buffer.Length), WebSocketMessageType.Text, true, CancellationToken.None);
+                await webSocket.SendAsync(new ArraySegment<byte>(buffer, 0, buffer.Length), WebSocketMessageType.Binary, true, CancellationToken.None);
             }
             catch (Exception err)
             {
@@ -505,7 +505,7 @@ namespace BattleIAserver
             {
                 State = BotState.WaitingAction;
                 System.Diagnostics.Debug.WriteLine($"Sending 'I' to {bot.GUID}");
-                await webSocket.SendAsync(new ArraySegment<byte>(buffer, 0, buffer.Length), WebSocketMessageType.Text, true, CancellationToken.None);
+                await webSocket.SendAsync(new ArraySegment<byte>(buffer, 0, buffer.Length), WebSocketMessageType.Binary, true, CancellationToken.None);
                 if(size > 0)
                     MainGame.SendCockpitInfo(bot.GUID, new ArraySegment<byte>(buffer, 0, buffer.Length));
             }

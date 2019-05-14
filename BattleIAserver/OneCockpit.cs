@@ -119,7 +119,7 @@ namespace BattleIAserver
             var buffer = System.Text.Encoding.UTF8.GetBytes(text);
             try
             {
-                await webSocket.SendAsync(new ArraySegment<byte>(buffer, 0, buffer.Length), WebSocketMessageType.Text, true, CancellationToken.None);
+                await webSocket.SendAsync(new ArraySegment<byte>(buffer, 0, buffer.Length), WebSocketMessageType.Binary, true, CancellationToken.None);
             }
             catch (Exception err)
             {
@@ -130,7 +130,7 @@ namespace BattleIAserver
 
         public async Task SendInfo(ArraySegment<byte> buffer)
         {
-            await webSocket.SendAsync(buffer, WebSocketMessageType.Text, true, CancellationToken.None);
+            await webSocket.SendAsync(buffer, WebSocketMessageType.Binary, true, CancellationToken.None);
         }
 
 
