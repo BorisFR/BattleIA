@@ -256,7 +256,10 @@ namespace BattleIAserver
                                     if (bot.Energy >= MainGame.Settings.EnergyLostShot)
                                     {
                                         bot.Energy -= MainGame.Settings.EnergyLostShot;
-                                        DoShoot(fireDirection);
+                                        if (turn == 1)
+                                            await IsHit();
+                                        else
+                                            DoShoot(fireDirection);
                                     }
                                     else
                                         bot.Energy = 0;
@@ -450,6 +453,7 @@ namespace BattleIAserver
             {
                 Console.WriteLine($"Bot {bot.Name} is dead!");
                 await webSocket.SendAsync(new ArraySegment<byte>(buffer, 0, buffer.Length), WebSocketMessageType.Binary, true, CancellationToken.None);
+                MainGame.ViewerRemovePlayer(bot.X, bot.Y);
             }
             catch (Exception err)
             {
@@ -522,19 +526,32 @@ namespace BattleIAserver
         public async Task<UInt16> IsHit()
         {
             UInt16 points = 0;
-            Console.WriteLine($"Bot {bot.Name} a été tamponné");
+            Console.WriteLine($"Bot {bot.Name} a été touché @ {bot.X}/{bot.Y}");
             if (bot.ShieldLevel > 0)
             {
                 // le bouclier absorbe le choc
-                bot.ShieldLevel--;
+                if(bot.ShieldLevel >= MainGame.Settings.PointByEnnemyTouch)
+                {
+                    bot.ShieldLevel -= MainGame.Settings.PointByEnnemyTouch;
+                } else
+                {
+                    points = (ushort)(MainGame.Settings.PointByEnnemyTouch - bot.ShieldLevel);
+                    bot.ShieldLevel = 0;
+                    if (bot.Energy >= points)
+                    {
+                        bot.Energy -= points;
+                    }
+                    else
+                        bot.Energy = 0;
+                }
                 MainGame.ViewerPlayerShield(bot.X, bot.Y, bot.ShieldLevel);
             }
             else
             {
                 points = MainGame.Settings.PointByEnnemyTouch;
                 // pas de bouclier, perte directe d'énergie !
-                if (bot.Energy >= MainGame.Settings.EnergyLostContactEnemy)
-                    bot.Energy -= MainGame.Settings.EnergyLostContactEnemy;
+                if (bot.Energy >= (2*MainGame.Settings.EnergyLostContactEnemy))
+                    bot.Energy -= (ushort)(2*MainGame.Settings.EnergyLostContactEnemy);
                 else
                     bot.Energy = 0;
             }
@@ -674,6 +691,7 @@ namespace BattleIAserver
 
         private async void DoShoot(byte direction)
         {
+            MainGame.ViewerAddBullet(bot.X, bot.Y, direction, 10);
             MoveDirection dir;
             try
             {
@@ -684,10 +702,10 @@ namespace BattleIAserver
             switch(dir)
             {
                 case MoveDirection.North:
-                    dy = -1;
+                    dy = 1;
                     break;
                 case MoveDirection.South:
-                    dy = 1;
+                    dy = -1;
                     break;
                 case MoveDirection.East:
                     dx = 1;
@@ -702,6 +720,7 @@ namespace BattleIAserver
             {
                 if(MainGame.TheMap[tx,ty] == CaseState.Ennemy)
                 {
+                    Console.WriteLine($"Bot {bot.Name} shoot from {bot.X}/{bot.Y}");
                     TouchEnemy((ushort)tx, (ushort)ty);
                     break;
                 }

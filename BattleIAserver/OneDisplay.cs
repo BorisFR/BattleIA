@@ -139,6 +139,24 @@ namespace BattleIAserver
             }
         }
 
+        public async Task SendRemovePlayer(byte x1, byte y1)
+        {
+            var buffer = new byte[3];
+            buffer[0] = System.Text.Encoding.ASCII.GetBytes("R")[0];
+            buffer[1] = x1;
+            buffer[2] = y1;
+            try
+            {
+                System.Diagnostics.Debug.WriteLine("[DISPLAY] Sending remove player");
+                await webSocket.SendAsync(new ArraySegment<byte>(buffer, 0, buffer.Length), WebSocketMessageType.Text, true, CancellationToken.None);
+            }
+            catch (Exception err)
+            {
+                System.Diagnostics.Debug.WriteLine($"[DISPLAY ERROR] {err.Message}");
+                MustRemove = true;
+            }
+        }
+
         public async Task SendClearCase(byte x1, byte y1)
         {
             var buffer = new byte[3];
@@ -167,6 +185,27 @@ namespace BattleIAserver
             {
                 System.Diagnostics.Debug.WriteLine("[DISPLAY] Sending add energy");
                 await webSocket.SendAsync(new ArraySegment<byte>(buffer, 0, buffer.Length), WebSocketMessageType.Text, true, CancellationToken.None);
+            }
+            catch (Exception err)
+            {
+                System.Diagnostics.Debug.WriteLine($"[DISPLAY ERROR] {err.Message}");
+                MustRemove = true;
+            }
+        }
+
+        public async Task SendAddBullet(byte x1, byte y1, byte direction, UInt16 duration)
+        {
+            var buffer = new byte[6];
+            buffer[0] = System.Text.Encoding.ASCII.GetBytes("B")[0];
+            buffer[1] = x1;
+            buffer[2] = y1;
+            buffer[3] = direction;
+            buffer[4] = (byte)duration;
+            buffer[5] = (byte)(duration >> 8);
+            try
+            {
+                System.Diagnostics.Debug.WriteLine("[DISPLAY] Sending add bullet");
+                await webSocket.SendAsync(new ArraySegment<byte>(buffer, 0, buffer.Length), WebSocketMessageType.Binary, true, CancellationToken.None);
             }
             catch (Exception err)
             {

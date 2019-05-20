@@ -411,6 +411,7 @@ namespace BattleIAserver
             }
             if (toRemove != null)
             {
+                ViewerRemovePlayer(toRemove.bot.X, toRemove.bot.Y);
                 RefreshViewer();
             }
             Console.WriteLine($"#bots: {AllBot.Count}");
@@ -446,13 +447,29 @@ namespace BattleIAserver
             }
         }
 
-        public static void ViewerMovePlayer(byte x1, byte y1, byte x2, byte y2)
+        public static async Task ViewerMovePlayer(byte x1, byte y1, byte x2, byte y2)
+        {
+            List<OneDisplay> temp = new List<OneDisplay>();
+            lock (lockListViewer)
+            {
+                foreach (OneDisplay o in AllViewer)
+                {
+                    temp.Add(o);
+                }
+            }
+            foreach (OneDisplay o in temp)
+            {
+                await o.SendMovePlayer(x1, y1, x2, y2);
+            }
+        }
+
+        public static void ViewerRemovePlayer(byte x1, byte y1)
         {
             lock (lockListViewer)
             {
                 foreach (OneDisplay o in AllViewer)
                 {
-                    o.SendMovePlayer(x1, y1, x2, y2);
+                    o.SendRemovePlayer(x1, y1);
                 }
             }
         }
@@ -475,6 +492,17 @@ namespace BattleIAserver
                 foreach (OneDisplay o in AllViewer)
                 {
                     o.SendAddEnergy(x1, y1);
+                }
+            }
+        }
+
+        public static void ViewerAddBullet(byte x1, byte y1, byte direction, UInt16 duration)
+        {
+            lock (lockListViewer)
+            {
+                foreach (OneDisplay o in AllViewer)
+                {
+                    o.SendAddBullet(x1, y1, direction, duration);
                 }
             }
         }
