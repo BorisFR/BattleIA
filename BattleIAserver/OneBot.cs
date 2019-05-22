@@ -227,10 +227,10 @@ namespace BattleIAserver
                                     }
                                     UInt16 cloakLevel = (UInt16)(buffer[1] + (buffer[2] << 8));
                                     Console.WriteLine($"Bot {bot.Name} activate cloak level {cloakLevel}");
-                                    bot.Energy += bot.CloakLevel;
-                                    bot.CloakLevel = cloakLevel;
-                                    MainGame.ViewerPlayerCloak(bot.X, bot.Y, (byte)bot.CloakLevel);
-                                    if (cloakLevel > bot.Energy)
+                                    // on récupère l'énergie actuelle dans le cloak
+                                    bot.Energy += (UInt16)(bot.CloakLevel / MainGame.Settings.EnergyCloakCostMultiplier);
+                                    // a-t-on assez d'énergie pour le niveau demandé ?
+                                    if (cloakLevel * MainGame.Settings.EnergyCloakCostMultiplier > bot.Energy)
                                     {
                                         bot.CloakLevel = 0;
                                         bot.Energy = 0;
@@ -238,7 +238,11 @@ namespace BattleIAserver
                                         await SendDead();
                                     }
                                     else
-                                        bot.Energy -= cloakLevel;
+                                    {
+                                        bot.Energy -= (UInt16)(cloakLevel * MainGame.Settings.EnergyCloakCostMultiplier);
+                                        bot.CloakLevel = cloakLevel;
+                                        MainGame.ViewerPlayerCloak(bot.X, bot.Y, (byte)bot.CloakLevel);
+                                    }
                                     State = BotState.Ready;
                                     await SendMessage("OK");
                                     break;
@@ -618,7 +622,7 @@ namespace BattleIAserver
                     bot.X = (byte)(bot.X + x);
                     bot.Y = (byte)(bot.Y + y);
                     MainGame.TheMap[bot.X, bot.Y] = CaseState.Ennemy;
-                    UInt16 temp = (UInt16)(MainGame.RND.Next(50) + 1);
+                    UInt16 temp = (UInt16)(MainGame.RND.Next(1 + MainGame.Settings.EnergyPodMax - MainGame.Settings.EnergyPodFrom) + MainGame.Settings.EnergyPodFrom);
                     bot.Energy += temp;
                     Console.WriteLine($"Bot {bot.Name} win energy: {temp}");
                     bot.Score += MainGame.Settings.PointByEnergyFound;

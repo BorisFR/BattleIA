@@ -23,7 +23,15 @@ namespace BattleIAserver
             //var kso = new KestrelServerOptions();
             //kso.ListenLocalhost(2626);
 
-            var prm = Newtonsoft.Json.JsonConvert.DeserializeObject<Settings>(File.ReadAllText(Path.Combine(currentDir, "settings.json")));
+            var theFile = Path.Combine(currentDir, "settings.json");
+            // création du fichier settings.json avec les valeurs par défaut
+            if(!File.Exists(theFile))
+            {
+                MainGame.Settings = new Settings();
+                string json = Newtonsoft.Json.JsonConvert.SerializeObject(MainGame.Settings, Newtonsoft.Json.Formatting.Indented);
+                File.WriteAllText(theFile, json);
+            }
+            var prm = Newtonsoft.Json.JsonConvert.DeserializeObject<Settings>(File.ReadAllText(theFile));
             MainGame.Settings = prm;
             MainGame.InitNewMap();
 

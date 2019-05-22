@@ -150,6 +150,7 @@ namespace BattleIAserver
             if (turnRunning) return;
             turnRunning = true;
             Console.WriteLine("Running simulator...");
+            int turnCount = 0;
             while (turnRunning)
             {
                 //System.Diagnostics.Debug.WriteLine("One turns...");
@@ -179,6 +180,12 @@ namespace BattleIAserver
                     }
                     // on génère de l'énergie si nécessaire
                     MainGame.RefuelMap();
+                    turnCount++;
+                    if(turnCount % MainGame.Settings.EnergyPodLessEvery == 0)
+                    {
+                        if (Settings.EnergyPodMax > Settings.EnergyPodMin)
+                            Settings.EnergyPodMax--;
+                    }
                 }
             }
             Console.WriteLine("End of running.");
@@ -375,6 +382,7 @@ namespace BattleIAserver
                 Console.WriteLine("Simulator is already running.");
                 return;
             }
+            Settings.EnergyPodMax = Settings.EnergyPodTo;
             SimulatorThread = new Thread(DoTurns);
             SimulatorThread.Start();
         }
